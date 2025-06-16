@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState} from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -6,7 +6,6 @@ import {
   SafeAreaView, 
   StatusBar,
   TouchableOpacity,
-  ScrollView,
   TextInput,
   Modal,
   Alert,
@@ -228,6 +227,8 @@ const Pendaftaran = ({ navigation }) => {
             keyExtractor={(item) => item.id.toString()}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.cardsList}
+            bounces={false}
+            overScrollMode="never"
           />
         </View>
       </View>
@@ -440,17 +441,17 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flex: 1,
-    paddingBottom: 150,
+    marginBottom: 80, // Space for bottom navbar
   },
   cardsList: {
-    paddingBottom: 20,
-    paddingHorizontal: 10,
+    paddingBottom: 30,
+    paddingHorizontal: 5,
   },
   patientCard: {
     backgroundColor: 'white',
     borderRadius: 5,
     marginBottom: 12,
-    elevation: 3,
+    elevation: 1,
   },
   cardHeader: {
     flexDirection: 'row',

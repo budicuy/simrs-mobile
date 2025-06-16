@@ -11,4 +11,16 @@
 -keep class com.swmansion.reanimated.** { *; }
 -keep class com.facebook.react.turbomodule.** { *; }
 
+# React Native Vector Icons
+-keep class com.oblador.vectoricons.** { *; }
+
+# AsyncStorage
+-keep class com.reactnativecommunity.asyncstorage.** { *; }
+
+# Expo
+-keep class expo.modules.** { *; }
+
+# React Navigation
+-keep class com.reactnavigation.** { *; }
+
 # Add any project specific keep options here:

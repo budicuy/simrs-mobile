@@ -2,7 +2,6 @@ import {
   StyleSheet, 
   Text, 
   View, 
-  Image, 
   TextInput, 
   TouchableOpacity, 
   SafeAreaView,
@@ -12,7 +11,6 @@ import {
 } from 'react-native'
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Untuk ikon amplop
 import LockIcon from 'react-native-vector-icons/Ionicons'; // Untuk ikon kunci
-import React, { useState } from 'react';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

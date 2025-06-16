@@ -6,6 +6,8 @@ import Login from '../pages/Login';
 import Home from '../pages/Home';
 import Profile from '../pages/Profile';
 import Pendaftaran from '../pages/Pendaftaran';
+import Pasien from '../pages/Pasien';
+import Layanan from '../pages/Layanan';
 
 const Stack = createStackNavigator();
 
@@ -44,6 +46,20 @@ const AppNavigator = () => {
           component={Pendaftaran} 
           options={{
             title: 'Pendaftaran'
+          }}
+        />
+        <Stack.Screen 
+          name="Pasien" 
+          component={Pasien} 
+          options={{
+            title: 'Pasien'
+          }}
+        />
+        <Stack.Screen 
+          name="Layanan" 
+          component={Layanan} 
+          options={{
+            title: 'Layanan'
           }}
         />
       </Stack.Navigator>

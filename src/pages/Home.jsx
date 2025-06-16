@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -8,12 +8,9 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  Image
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import FontAwesome from 'react-native-vector-icons/FontAwesome';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import BottomNavbar from '../components/BottomNavbar';
 
 const Home = ({ navigation }) => {
@@ -129,7 +126,10 @@ const Home = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* Pasien Card */}
-          <TouchableOpacity style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigation.navigate('Pasien')}
+          >
             <View style={[styles.statIcon, { backgroundColor: '#42A5F5' }]}>
               <Icon name="account-group" size={24} color="white" />
             </View>
@@ -140,38 +140,17 @@ const Home = ({ navigation }) => {
             <Icon name="chevron-right" size={20} color="#999" />
           </TouchableOpacity>
 
-          {/* Poli Card */}
-          <TouchableOpacity style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#EF5350' }]}>
-              <Icon name="hospital" size={24} color="white" />
+          {/* Layanan Card */}
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigation.navigate('Layanan')}
+          >
+            <View style={[styles.statIcon, { backgroundColor: '#9C27B0' }]}>
+              <Icon name="medical-bag" size={24} color="white" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statTitle}>Poli</Text>
-              <Text style={styles.statNumber}>30</Text>
-            </View>
-            <Icon name="chevron-right" size={20} color="#999" />
-          </TouchableOpacity>
-
-          {/* Dokter Card */}
-          <TouchableOpacity style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#26C6DA' }]}>
-              <Icon name="doctor" size={24} color="white" />
-            </View>
-            <View style={styles.statInfo}>
-              <Text style={styles.statTitle}>Dokter</Text>
-              <Text style={styles.statNumber}>30</Text>
-            </View>
-            <Icon name="chevron-right" size={20} color="#999" />
-          </TouchableOpacity>
-
-          {/* Perawat Card */}
-          <TouchableOpacity style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#AB47BC' }]}>
-              <Icon name="nurse" size={24} color="white" />
-            </View>
-            <View style={styles.statInfo}>
-              <Text style={styles.statTitle}>Perawat</Text>
-              <Text style={styles.statNumber}>30</Text>
+              <Text style={styles.statTitle}>Layanan</Text>
+              <Text style={styles.statNumber}>90</Text>
             </View>
             <Icon name="chevron-right" size={20} color="#999" />
           </TouchableOpacity>
