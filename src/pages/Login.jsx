@@ -9,6 +9,7 @@ import {
   StatusBar,
   Alert
 } from 'react-native'
+import React, { useState, useEffect } from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Untuk ikon amplop
 import LockIcon from 'react-native-vector-icons/Ionicons'; // Untuk ikon kunci
 import axios from 'axios';
@@ -19,6 +20,26 @@ const Login = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Check if user already logged in
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      const token = await AsyncStorage.getItem('access_token');
+      if (token) {
+        // User sudah login, redirect ke Main
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Main' }],
+        });
+      }
+    } catch (error) {
+      console.log('Error checking login status:', error);
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Email dan password harus diisi');
@@ -28,33 +49,44 @@ const Login = ({ navigation }) => {
     setLoading(true);
 
     try {
+      console.log('Starting login process...');
+      
       const response = await axios.post('https://nazarfadil.me/api/login', {
-        email: email,
+        email: email.trim(),
         password: password
       }, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer 8|7hLsIACLlHUEYV3TcbI1tLBcgtQBKtawvOHaHm0Zebb8a55f'
-        }
+        },
+        timeout: 10000 // 10 second timeout
       });
 
-      if (response.data.access_token) {
+      console.log('Login response:', response.data);
+
+      if (response.data && response.data.access_token) {
         // Simpan token dan data user ke AsyncStorage
-        await AsyncStorage.setItem('access_token', response.data.access_token);
-        await AsyncStorage.setItem('user_data', JSON.stringify(response.data.user));
-        
-        Alert.alert('Sukses', response.data.message, [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Arahkan ke halaman Home
-              if (navigation) {
-                navigation.navigate('Home');
-              }
-            }
+        try {
+          await AsyncStorage.setItem('access_token', response.data.access_token);
+          if (response.data.user) {
+            await AsyncStorage.setItem('user_data', JSON.stringify(response.data.user));
           }
-        ]);
+          
+          console.log('Data saved to AsyncStorage successfully');
+          
+          // Redirect to Main using navigation reset untuk menghindari back ke login
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Main' }],
+          });
+          
+        } catch (storageError) {
+          console.error('AsyncStorage error:', storageError);
+          Alert.alert('Error', 'Gagal menyimpan data login');
+        }
+      } else {
+        Alert.alert('Login Gagal', 'Response tidak valid dari server');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -63,10 +95,17 @@ const Login = ({ navigation }) => {
       
       if (error.response) {
         // Server merespons dengan status error
-        errorMessage = error.response.data.message || 'Email atau password salah';
+        console.log('Error response:', error.response.data);
+        errorMessage = error.response.data?.message || 'Email atau password salah';
       } else if (error.request) {
         // Request dibuat tapi tidak ada response
-        errorMessage = 'Tidak dapat terhubung ke server';
+        console.log('Network error:', error.request);
+        errorMessage = 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Koneksi timeout. Silakan coba lagi.';
+      } else {
+        console.log('Other error:', error.message);
+        errorMessage = error.message || 'Terjadi kesalahan tidak terduga';
       }
       
       Alert.alert('Login Gagal', errorMessage);
@@ -266,4 +305,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default Login
+export default Login;

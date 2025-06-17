@@ -1,4 +1,4 @@
-import { useState} from 'react';
+import React, { useState} from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -12,7 +12,6 @@ import {
   FlatList
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import BottomNavbar from '../components/BottomNavbar';
 
 const Pendaftaran = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('Hari ini');
@@ -229,6 +228,8 @@ const Pendaftaran = ({ navigation }) => {
             contentContainerStyle={styles.cardsList}
             bounces={false}
             overScrollMode="never"
+            bounces={false}
+            overScrollMode="never"
           />
         </View>
       </View>
@@ -334,9 +335,6 @@ const Pendaftaran = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-
-      {/* Bottom Navigation */}
-      <BottomNavbar navigation={navigation} activeTab="Pendaftaran" />
     </SafeAreaView>
   );
 };
@@ -442,8 +440,11 @@ const styles = StyleSheet.create({
   cardsContainer: {
     flex: 1,
     marginBottom: 80, // Space for bottom navbar
+    marginBottom: 80, // Space for bottom navbar
   },
   cardsList: {
+    paddingBottom: 30,
+    paddingHorizontal: 5,
     paddingBottom: 30,
     paddingHorizontal: 5,
   },
@@ -451,6 +452,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 5,
     marginBottom: 12,
+    elevation: 1,
     elevation: 1,
   },
   cardHeader: {

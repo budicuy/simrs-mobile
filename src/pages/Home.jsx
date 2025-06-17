@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import BottomNavbar from '../components/BottomNavbar';
 
 const Home = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
@@ -36,20 +35,23 @@ const Home = ({ navigation }) => {
     Alert.alert(
       'Logout',
       'Apakah Anda yakin ingin keluar?',
-      [
-        {
+      [{
           text: 'Batal',
           style: 'cancel'
-        },
-        {
+        },{
           text: 'Keluar',
           onPress: async () => {
             try {
               await AsyncStorage.removeItem('access_token');
               await AsyncStorage.removeItem('user_data');
-              navigation.navigate('Login');
+              // Reset navigation stack dan kembali ke Login
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
             } catch (error) {
               console.error('Error during logout:', error);
+              Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
             }
           }
         }
@@ -87,8 +89,7 @@ const Home = ({ navigation }) => {
           </View>
         </View>
         <TouchableOpacity 
-          style={styles.profileButton} 
-          onPress={() => navigation.navigate('Profile')}
+          style={styles.profileButton}
         >
           <Icon name="account-circle" size={35} color="white" />
         </TouchableOpacity>
@@ -111,10 +112,7 @@ const Home = ({ navigation }) => {
         {/* Statistics Cards */}
         <View style={styles.statsContainer}>
           {/* Pendaftaran Card */}
-          <TouchableOpacity 
-            style={styles.statCard}
-            onPress={() => navigation.navigate('Pendaftaran')}
-          >
+          <TouchableOpacity style={styles.statCard}>
             <View style={[styles.statIcon, { backgroundColor: '#FFA726' }]}>
               <Icon name="clipboard-text" size={24} color="white" />
             </View>
@@ -141,14 +139,13 @@ const Home = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* Layanan Card */}
-          <TouchableOpacity 
-            style={styles.statCard}
-            onPress={() => navigation.navigate('Layanan')}
-          >
+          <TouchableOpacity style={styles.statCard}>
             <View style={[styles.statIcon, { backgroundColor: '#9C27B0' }]}>
               <Icon name="medical-bag" size={24} color="white" />
             </View>
             <View style={styles.statInfo}>
+              <Text style={styles.statTitle}>Layanan</Text>
+              <Text style={styles.statNumber}>90</Text>
               <Text style={styles.statTitle}>Layanan</Text>
               <Text style={styles.statNumber}>90</Text>
             </View>
@@ -156,9 +153,6 @@ const Home = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <BottomNavbar navigation={navigation} activeTab="Beranda" />
     </SafeAreaView>
   );
 };

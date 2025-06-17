@@ -2,33 +2,38 @@ import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const BottomNavbar = ({ navigation, activeTab = 'Beranda' }) => {
+const BottomNavbar = ({ currentPage = 'Home', onNavigate }) => {
   const navItems = [
     {
-      name: 'Beranda',
+      name: 'Home',
       icon: 'view-dashboard',
-      route: 'Home'
+      label: 'Beranda'
     },
     {
       name: 'Pendaftaran',
       icon: 'clipboard-text',
-      route: 'Pendaftaran'
+      label: 'Pendaftaran'
     },
     {
       name: 'Pasien',
       icon: 'account-group',
-      route: 'Pasien'
+      label: 'Pasien'
     },
     {
       name: 'Layanan',
       icon: 'medical-bag',
-      route: 'Layanan'
+      label: 'Layanan'
+    },
+    {
+      name: 'Profile',
+      icon: 'account',
+      label: 'Profile'
     }
   ];
 
-  const handleNavPress = (item) => {
-    if (item.route !== activeTab && navigation) {
-      navigation.navigate(item.route);
+  const handleNavPress = (pageName) => {
+    if (pageName !== currentPage && onNavigate) {
+      onNavigate(pageName);
     }
   };
 
@@ -38,20 +43,20 @@ const BottomNavbar = ({ navigation, activeTab = 'Beranda' }) => {
         <TouchableOpacity 
           key={item.name}
           style={styles.navItem}
-          onPress={() => handleNavPress(item)}
+          onPress={() => handleNavPress(item.name)}
         >
           <Icon 
             name={item.icon} 
             size={24} 
-            color={activeTab === item.name ? '#2A9DF4' : '#999'} 
+            color={currentPage === item.name ? '#2A9DF4' : '#999'} 
           />
           <Text 
             style={[
               styles.navText, 
-              { color: activeTab === item.name ? '#2A9DF4' : '#999' }
+              { color: currentPage === item.name ? '#2A9DF4' : '#999' }
             ]}
           >
-            {item.name}
+            {item.label}
           </Text>
         </TouchableOpacity>
       ))}

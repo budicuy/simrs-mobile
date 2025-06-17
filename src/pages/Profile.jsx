@@ -46,9 +46,14 @@ const Profile = ({ navigation }) => {
             try {
               await AsyncStorage.removeItem('access_token');
               await AsyncStorage.removeItem('user_data');
-              navigation.navigate('Login');
+              // Reset navigation stack dan kembali ke Login
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
             } catch (error) {
               console.error('Error during logout:', error);
+              Alert.alert('Error', 'Gagal logout. Silakan coba lagi.');
             }
           }
         }
