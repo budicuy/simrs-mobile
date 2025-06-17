@@ -14,10 +14,36 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Home = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
+  
+  // Data statistik layanan
+  const [statsData, setStatsData] = useState({
+    totalDokter: 5,
+    totalPerawat: 5,
+    totalPoli: 5,
+    totalPendaftaran: 50,
+    totalPasien: 150
+  });
 
   useEffect(() => {
     loadUserData();
+    loadStatsData();
   }, []);
+
+  const loadStatsData = async () => {
+    // Simulasi load data statistik
+    // Dalam implementasi nyata, data ini bisa diambil dari API
+    try {
+      setStatsData({
+        totalDokter: 5,
+        totalPerawat: 5,
+        totalPoli: 5,
+        totalPendaftaran: 8, // Dari data pendaftaran yang ada
+        totalPasien: 8 // Dari data pasien yang ada
+      });
+    } catch (error) {
+      console.error('Error loading stats data:', error);
+    }
+  };
 
   const loadUserData = async () => {
     try {
@@ -112,13 +138,17 @@ const Home = ({ navigation }) => {
         {/* Statistics Cards */}
         <View style={styles.statsContainer}>
           {/* Pendaftaran Card */}
-          <TouchableOpacity style={styles.statCard}>
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigation.navigate('Pendaftaran')}
+          >
             <View style={[styles.statIcon, { backgroundColor: '#FFA726' }]}>
               <Icon name="clipboard-text" size={24} color="white" />
             </View>
             <View style={styles.statInfo}>
               <Text style={styles.statTitle}>Pendaftaran</Text>
-              <Text style={styles.statNumber}>50</Text>
+              <Text style={styles.statNumber}>{statsData.totalPendaftaran}</Text>
+              <Text style={styles.statSubtitle}>Pasien hari ini</Text>
             </View>
             <Icon name="chevron-right" size={20} color="#999" />
           </TouchableOpacity>
@@ -132,22 +162,37 @@ const Home = ({ navigation }) => {
               <Icon name="account-group" size={24} color="white" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statTitle}>Pasien</Text>
-              <Text style={styles.statNumber}>150</Text>
+              <Text style={styles.statTitle}>Data Pasien</Text>
+              <Text style={styles.statNumber}>{statsData.totalPasien}</Text>
+              <Text style={styles.statSubtitle}>Total pasien terdaftar</Text>
             </View>
             <Icon name="chevron-right" size={20} color="#999" />
           </TouchableOpacity>
 
-          {/* Layanan Card */}
-          <TouchableOpacity style={styles.statCard}>
+          {/* Layanan Summary Card */}
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigation.navigate('Layanan')}
+          >
             <View style={[styles.statIcon, { backgroundColor: '#9C27B0' }]}>
               <Icon name="medical-bag" size={24} color="white" />
             </View>
             <View style={styles.statInfo}>
-              <Text style={styles.statTitle}>Layanan</Text>
-              <Text style={styles.statNumber}>90</Text>
-              <Text style={styles.statTitle}>Layanan</Text>
-              <Text style={styles.statNumber}>90</Text>
+              <Text style={styles.statTitle}>Layanan Medis</Text>
+              <View style={styles.layananDetails}>
+                <View style={styles.layananItem}>
+                  <Icon name="doctor" size={16} color="#666" />
+                  <Text style={styles.layananText}>{statsData.totalDokter} Dokter</Text>
+                </View>
+                <View style={styles.layananItem}>
+                  <Icon name="account-heart" size={16} color="#666" />
+                  <Text style={styles.layananText}>{statsData.totalPerawat} Perawat</Text>
+                </View>
+                <View style={styles.layananItem}>
+                  <Icon name="hospital-building" size={16} color="#666" />
+                  <Text style={styles.layananText}>{statsData.totalPoli} Poli</Text>
+                </View>
+              </View>
             </View>
             <Icon name="chevron-right" size={20} color="#999" />
           </TouchableOpacity>
@@ -268,6 +313,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2A9DF4',
+  },
+  statSubtitle: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
+  },
+  layananDetails: {
+    marginTop: 4,
+  },
+  layananItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  layananText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 6,
+    fontWeight: '500',
   },
 });
 
