@@ -7,21 +7,24 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
 
 const Home = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
   
   // Data statistik layanan
   const [statsData, setStatsData] = useState({
-    totalDokter: 5,
-    totalPerawat: 5,
-    totalPoli: 5,
-    totalPendaftaran: 50,
-    totalPasien: 150
+    totalDokter: 0,
+    totalPerawat: 0,
+    totalPoli: 0,
+    totalPendaftaran: 0,
+    totalPasien: 0
   });
 
   useEffect(() => {
@@ -30,18 +33,58 @@ const Home = ({ navigation }) => {
   }, []);
 
   const loadStatsData = async () => {
-    // Simulasi load data statistik
-    // Dalam implementasi nyata, data ini bisa diambil dari API
     try {
-      setStatsData({
-        totalDokter: 5,
-        totalPerawat: 5,
-        totalPoli: 5,
-        totalPendaftaran: 8, // Dari data pendaftaran yang ada
-        totalPasien: 8 // Dari data pasien yang ada
+      setLoading(true);
+      const token = await AsyncStorage.getItem('access_token');
+      
+      const response = await axios.get('https://nazarfadil.me/api/dashboard/counts', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 10000
       });
+
+      console.log('Dashboard API response:', response.data);
+
+      if (response.data) {
+        setStatsData({
+          totalDokter: parseInt(response.data.dokter_count) || 0,
+          totalPerawat: parseInt(response.data.perawat_count) || 0,
+          totalPoli: parseInt(response.data.poli_count) || 0,
+          totalPendaftaran: parseInt(response.data.pendaftaran_count) || 0,
+          totalPasien: parseInt(response.data.pasien_count) || 0
+        });
+      }
     } catch (error) {
       console.error('Error loading stats data:', error);
+      
+      let errorMessage = 'Gagal memuat data dashboard';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Sesi login expired. Silakan login kembali.';
+        // Redirect to login if unauthorized
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
+      
+      // Set default values if API fails
+      setStatsData({
+        totalDokter: 0,
+        totalPerawat: 0,
+        totalPoli: 0,
+        totalPendaftaran: 0,
+        totalPasien: 0
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,6 +142,10 @@ const Home = ({ navigation }) => {
     return `${dayName}, ${day} ${month} ${year}`;
   };
 
+  const handleRefresh = async () => {
+    await loadStatsData();
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" translucent={false} />
@@ -114,11 +161,24 @@ const Home = ({ navigation }) => {
             <Text style={styles.hospitalSubtitle}>BANJARMASIN</Text>
           </View>
         </View>
-        <TouchableOpacity 
-          style={styles.profileButton}
-        >
-          <Icon name="account-circle" size={35} color="white" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity 
+            style={styles.refreshButton}
+            onPress={handleRefresh}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Icon name="refresh" size={24} color="white" />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.profileButton}
+          >
+            <Icon name="account-circle" size={35} color="white" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -147,7 +207,11 @@ const Home = ({ navigation }) => {
             </View>
             <View style={styles.statInfo}>
               <Text style={styles.statTitle}>Pendaftaran</Text>
-              <Text style={styles.statNumber}>{statsData.totalPendaftaran}</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="#2A9DF4" style={styles.loadingIndicator} />
+              ) : (
+                <Text style={styles.statNumber}>{statsData.totalPendaftaran}</Text>
+              )}
               <Text style={styles.statSubtitle}>Pasien hari ini</Text>
             </View>
             <Icon name="chevron-right" size={20} color="#999" />
@@ -163,7 +227,11 @@ const Home = ({ navigation }) => {
             </View>
             <View style={styles.statInfo}>
               <Text style={styles.statTitle}>Data Pasien</Text>
-              <Text style={styles.statNumber}>{statsData.totalPasien}</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="#2A9DF4" style={styles.loadingIndicator} />
+              ) : (
+                <Text style={styles.statNumber}>{statsData.totalPasien}</Text>
+              )}
               <Text style={styles.statSubtitle}>Total pasien terdaftar</Text>
             </View>
             <Icon name="chevron-right" size={20} color="#999" />
@@ -179,20 +247,24 @@ const Home = ({ navigation }) => {
             </View>
             <View style={styles.statInfo}>
               <Text style={styles.statTitle}>Layanan Medis</Text>
-              <View style={styles.layananDetails}>
-                <View style={styles.layananItem}>
-                  <Icon name="doctor" size={16} color="#666" />
-                  <Text style={styles.layananText}>{statsData.totalDokter} Dokter</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="#2A9DF4" style={styles.loadingIndicator} />
+              ) : (
+                <View style={styles.layananDetails}>
+                  <View style={styles.layananItem}>
+                    <Icon name="doctor" size={16} color="#666" />
+                    <Text style={styles.layananText}>{statsData.totalDokter} Dokter</Text>
+                  </View>
+                  <View style={styles.layananItem}>
+                    <Icon name="account-heart" size={16} color="#666" />
+                    <Text style={styles.layananText}>{statsData.totalPerawat} Perawat</Text>
+                  </View>
+                  <View style={styles.layananItem}>
+                    <Icon name="hospital-building" size={16} color="#666" />
+                    <Text style={styles.layananText}>{statsData.totalPoli} Poli</Text>
+                  </View>
                 </View>
-                <View style={styles.layananItem}>
-                  <Icon name="account-heart" size={16} color="#666" />
-                  <Text style={styles.layananText}>{statsData.totalPerawat} Perawat</Text>
-                </View>
-                <View style={styles.layananItem}>
-                  <Icon name="hospital-building" size={16} color="#666" />
-                  <Text style={styles.layananText}>{statsData.totalPoli} Poli</Text>
-                </View>
-              </View>
+              )}
             </View>
             <Icon name="chevron-right" size={20} color="#999" />
           </TouchableOpacity>
@@ -234,6 +306,16 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  refreshButton: {
+    padding: 8,
+    marginRight: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   logoContainer: {
     width: 40,
@@ -333,6 +415,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
     marginTop: 2,
+  },
+  loadingIndicator: {
+    marginVertical: 4,
   },
   layananDetails: {
     marginTop: 4,
