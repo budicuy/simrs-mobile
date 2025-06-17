@@ -228,8 +228,6 @@ const Pendaftaran = ({ navigation }) => {
             contentContainerStyle={styles.cardsList}
             bounces={false}
             overScrollMode="never"
-            bounces={false}
-            overScrollMode="never"
           />
         </View>
       </View>

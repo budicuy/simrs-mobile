@@ -1,4 +1,4 @@
-import { useState} from 'react';
+import React, { useState } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -13,7 +13,7 @@ import {
   FlatList
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-// BottomNavbar dihandle oleh SwipeNavigation, tidak perlu di import di sini
+import BottomNavbar from '../components/BottomNavbar';
 
 const Pasien = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('Semua');

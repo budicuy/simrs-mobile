@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -7,20 +8,22 @@ import {
   SafeAreaView,
   ScrollView,
   StatusBar,
-  Alert
+  Alert,
+  Image
 } from 'react-native'
-import React, { useState, useEffect } from 'react';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Untuk ikon amplop
 import LockIcon from 'react-native-vector-icons/Ionicons'; // Untuk ikon kunci
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Import logo
+const logo = require('../assets/images/logo.png');
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Check if user already logged in
   useEffect(() => {
     checkLoginStatus();
   }, []);
@@ -120,10 +123,10 @@ const Login = ({ navigation }) => {
       
       {/* BAGIAN ATAS (HEADER BIRU) */}
       <View style={styles.headerContainer}>
-        {/* <Image 
+        <Image 
           source={logo} // Ganti dengan path logo Anda
           style={styles.logo}
-        /> */}
+        />
         <Text style={styles.headerText}>RUMAH SAKIT ISLAM</Text>
       </View>
 
