@@ -12,6 +12,7 @@ import Profile from '../pages/Profile';
 import Pendaftaran from '../pages/Pendaftaran';
 import Pasien from '../pages/Pasien';
 import Layanan from '../pages/Layanan';
+import User from '../pages/User';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -136,6 +137,13 @@ const AppNavigator = () => {
             component={Layanan} 
             options={{
               title: 'Layanan'
+            }}
+          />
+          <Stack.Screen 
+            name="User" 
+            component={User} 
+            options={{
+              title: 'Data User'
             }}
           />
         </Stack.Navigator>

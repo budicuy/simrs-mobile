@@ -196,6 +196,21 @@ const Home = ({ navigation }) => {
             </View>
             <Icon name="chevron-right" size={20} color="#999" />
           </TouchableOpacity>
+
+          {/* User Management Card */}
+          <TouchableOpacity 
+            style={styles.statCard}
+            onPress={() => navigation.navigate('User')}
+          >
+            <View style={[styles.statIcon, { backgroundColor: '#FF6B35' }]}>
+              <Icon name="account-cog" size={24} color="white" />
+            </View>
+            <View style={styles.statInfo}>
+              <Text style={styles.statTitle}>User Management</Text>
+              <Text style={styles.statSubtitle}>Kelola data pengguna sistem</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color="#999" />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

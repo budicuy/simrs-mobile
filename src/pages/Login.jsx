@@ -157,6 +157,7 @@ const Login = ({ navigation }) => {
               placeholderTextColor="#AAA"
               secureTextEntry // Ini penting untuk menyembunyikan kata sandi
               value={password}
+              autoCapitalize="none"
               onChangeText={setPassword}
               editable={!loading}
             />
