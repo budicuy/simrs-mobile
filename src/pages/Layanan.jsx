@@ -13,9 +13,9 @@ import {
   FlatList
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import BottomNavbar from '../components/BottomNavbar';
+// BottomNavbar dihandle oleh SwipeNavigation, tidak perlu di import di sini
 
-const Layanan = ({ navigation }) => {
+const Layanan = () => {
   const [activeTab, setActiveTab] = useState('Dokter');
   const [searchText, setSearchText] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -592,9 +592,6 @@ const Layanan = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-
-      {/* Bottom Navigation */}
-      <BottomNavbar navigation={navigation} activeTab="Layanan" />
     </SafeAreaView>
   );
 };
