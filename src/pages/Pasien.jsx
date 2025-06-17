@@ -13,7 +13,6 @@ import {
   FlatList
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import BottomNavbar from '../components/BottomNavbar';
 
 const Pasien = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('Semua');
@@ -539,9 +538,6 @@ const Pasien = ({ navigation }) => {
           </View>
         </View>
       </Modal>
-
-      {/* Bottom Navigation */}
-      <BottomNavbar navigation={navigation} activeTab="Pasien" />
     </SafeAreaView>
   );
 };
@@ -646,7 +642,6 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flex: 1,
-    marginBottom: 80,
   },
   cardsList: {
     paddingBottom: 30,

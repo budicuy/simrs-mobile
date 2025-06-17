@@ -16,7 +16,6 @@ import LockIcon from 'react-native-vector-icons/Ionicons'; // Untuk ikon kunci
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Import logo
 const logo = require('../assets/images/logo.png');
 
 const Login = ({ navigation }) => {
