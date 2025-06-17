@@ -422,7 +422,7 @@ const Pendaftaran = ({ navigation }) => {
         <View style={styles.cardHeader}>
           <View style={styles.cardNumber}>
             <Text style={styles.cardNumberText}>
-              {parseInt(item.no_antrian).toString().padStart(3, '0')}
+              {parseInt(item.no_antrian)}
             </Text>
           </View>
           <View style={styles.cardInfo}>
