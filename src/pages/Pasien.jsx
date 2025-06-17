@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -9,130 +9,29 @@ import {
   TextInput,
   Modal,
   Alert,
-  FlatList
+  FlatList,
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Pasien = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('Semua');
   const [searchText, setSearchText] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [pasienData, setPasienData] = useState([
-    {
-      rm: 1001,
-      nik: '6371012345678901',
-      nama_pasien: 'Ahmad Rizki Pratama',
-      tgl_lahir: '1990-05-15',
-      agama: 'Islam',
-      kabupaten: 'Banjarmasin',
-      pekerjaan: 'Pegawai Swasta',
-      jns_kelamin: 'L',
-      alamat: 'Jl. Ahmad Yani No. 123, Banjarmasin',
-      no_hp_pasien: '081234567890',
-      email_pasien: 'ahmad.rizki@email.com',
-      gol_darah: 'O'
-    },
-    {
-      rm: 1002,
-      nik: '6371012345678902',
-      nama_pasien: 'Siti Nurhaliza',
-      tgl_lahir: '1985-12-20',
-      agama: 'Islam',
-      kabupaten: 'Banjarbaru',
-      pekerjaan: 'Guru',
-      jns_kelamin: 'P',
-      alamat: 'Jl. Veteran No. 456, Banjarbaru',
-      no_hp_pasien: '081234567891',
-      email_pasien: 'siti.nur@email.com',
-      gol_darah: 'A'
-    },
-    {
-      rm: 1003,
-      nik: '6371012345678903',
-      nama_pasien: 'Budi Santoso',
-      tgl_lahir: '1992-08-10',
-      agama: 'Islam',
-      kabupaten: 'Banjarmasin',
-      pekerjaan: 'Wiraswasta',
-      jns_kelamin: 'L',
-      alamat: 'Jl. Lambung Mangkurat No. 789, Banjarmasin',
-      no_hp_pasien: '081234567892',
-      email_pasien: 'budi.santoso@email.com',
-      gol_darah: 'B'
-    },
-    {
-      rm: 1004,
-      nik: '6371012345678904',
-      nama_pasien: 'Maya Indira Sari',
-      tgl_lahir: '1988-03-25',
-      agama: 'Islam',
-      kabupaten: 'Martapura',
-      pekerjaan: 'Dokter',
-      jns_kelamin: 'P',
-      alamat: 'Jl. Pangeran Antasari No. 321, Martapura',
-      no_hp_pasien: '081234567893',
-      email_pasien: 'maya.indira@email.com',
-      gol_darah: 'AB'
-    },
-    {
-      rm: 1005,
-      nik: '6371012345678905',
-      nama_pasien: 'Dani Firmansyah',
-      tgl_lahir: '1995-11-08',
-      agama: 'Islam',
-      kabupaten: 'Banjarmasin',
-      pekerjaan: 'Engineer',
-      jns_kelamin: 'L',
-      alamat: 'Jl. Sutoyo S No. 654, Banjarmasin',
-      no_hp_pasien: '081234567894',
-      email_pasien: 'dani.firm@email.com',
-      gol_darah: 'O'
-    },
-    {
-      rm: 1006,
-      nik: '6371012345678906',
-      nama_pasien: 'Rina Kartika',
-      tgl_lahir: '1993-07-12',
-      agama: 'Islam',
-      kabupaten: 'Banjarbaru',
-      pekerjaan: 'Perawat',
-      jns_kelamin: 'P',
-      alamat: 'Jl. A. Yani Km. 5 No. 987, Banjarbaru',
-      no_hp_pasien: '081234567895',
-      email_pasien: 'rina.kartika@email.com',
-      gol_darah: 'A'
-    },
-    {
-      rm: 1007,
-      nik: '6371012345678907',
-      nama_pasien: 'Fajar Ramadhan',
-      tgl_lahir: '1991-09-30',
-      agama: 'Islam',
-      kabupaten: 'Banjarmasin',
-      pekerjaan: 'Mahasiswa',
-      jns_kelamin: 'L',
-      alamat: 'Jl. Kelayan A No. 147, Banjarmasin',
-      no_hp_pasien: '081234567896',
-      email_pasien: 'fajar.ramadhan@email.com',
-      gol_darah: 'B'
-    },
-    {
-      rm: 1008,
-      nik: '6371012345678908',
-      nama_pasien: 'Dewi Anggraini',
-      tgl_lahir: '1987-04-18',
-      agama: 'Islam',
-      kabupaten: 'Martapura',
-      pekerjaan: 'Bidan',
-      jns_kelamin: 'P',
-      alamat: 'Jl. Kayu Tangi No. 258, Martapura',
-      no_hp_pasien: '081234567897',
-      email_pasien: 'dewi.anggraini@email.com',
-      gol_darah: 'AB'
-    }
-  ]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
+  // API Data states
+  const [pasienData, setPasienData] = useState([]);
+  const [showKabupatenDropdown, setShowKabupatenDropdown] = useState(false);
+  const [showAgamaDropdown, setShowAgamaDropdown] = useState(false);
+
+  // Form states
   const [newPasien, setNewPasien] = useState({
     rm: '',
     nik: '',
@@ -141,16 +40,102 @@ const Pasien = ({ navigation }) => {
     agama: 'Islam',
     kabupaten: '',
     pekerjaan: '',
-    jns_kelamin: 'L',
+    jns_kelamin: 'Laki-Laki',
     alamat: '',
     no_hp_pasien: '',
     email_pasien: '',
     gol_darah: 'O'
   });
 
-  const jenisKelaminOptions = ['L', 'P'];
-  const golDarahOptions = ['A', 'B', 'AB', 'O'];
-  const agamaOptions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
+  const jenisKelaminOptions = ['Laki-Laki', 'Perempuan'];
+  const golDarahOptions = ['A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  const agamaOptions = ['Islam', 'Kristen', 'Katholik', 'Protestan', 'Hindu', 'Buddha', 'Tidak Ada'];
+  
+  // Indonesian provinces/kabupaten
+  const kabupatenOptions = [
+    'Aceh Barat', 'Aceh Barat Daya', 'Aceh Besar', 'Aceh Jaya', 'Aceh Selatan', 'Aceh Singkil', 'Aceh Tamiang', 'Aceh Tengah', 'Aceh Tenggara', 'Aceh Timur', 'Aceh Utara',
+    'Badung', 'Bangli', 'Buleleng', 'Gianyar', 'Jembrana', 'Karangasem', 'Klungkung', 'Tabanan',
+    'Lebak', 'Pandeglang', 'Serang', 'Tangerang',
+    'Jakarta Barat', 'Jakarta Pusat', 'Jakarta Selatan', 'Jakarta Timur', 'Jakarta Utara', 'Kepulauan Seribu',
+    'Bogor', 'Sukabumi', 'Cianjur', 'Bandung', 'Garut', 'Tasikmalaya', 'Ciamis', 'Kuningan', 'Cirebon', 'Majalengka', 'Sumedang', 'Indramayu', 'Subang', 'Purwakarta', 'Karawang', 'Bekasi', 'Bandung Barat', 'Pangandaran',
+    'Cilacap', 'Banyumas', 'Purbalingga', 'Banjarnegara', 'Kebumen', 'Purworejo', 'Wonosobo', 'Magelang', 'Boyolali', 'Klaten', 'Sukoharjo', 'Wonogiri', 'Karanganyar', 'Sragen', 'Grobogan', 'Blora', 'Rembang', 'Pati', 'Kudus', 'Jepara', 'Demak', 'Semarang', 'Temanggung', 'Kendal', 'Batang', 'Pekalongan', 'Pemalang', 'Tegal', 'Brebes',
+    'Kulon Progo', 'Bantul', 'Gunung Kidul', 'Sleman',
+    'Pacitan', 'Ponorogo', 'Trenggalek', 'Tulungagung', 'Blitar', 'Kediri', 'Malang', 'Lumajang', 'Jember', 'Banyuwangi', 'Bondowoso', 'Situbondo', 'Probolinggo', 'Pasuruan', 'Sidoarjo', 'Mojokerto', 'Jombang', 'Nganjuk', 'Madiun', 'Magetan', 'Ngawi', 'Bojonegoro', 'Tuban', 'Lamongan', 'Gresik',
+    'Banjar', 'Barito Kuala', 'Hulu Sungai Selatan', 'Hulu Sungai Tengah', 'Hulu Sungai Utara', 'Tabalong', 'Tanah Bumbu', 'Tanah Laut', 'Balangan', 'Kotabaru', 'Tapin',
+    'Kutai Barat', 'Kutai Kartanegara', 'Kutai Timur', 'Berau', 'Malinau', 'Bulungan', 'Nunukan', 'Penajam Paser Utara', 'Tana Tidung',
+    'Bolaang Mongondow', 'Minahasa', 'Kepulauan Sangihe', 'Kepulauan Talaud', 'Minahasa Selatan', 'Minahasa Utara', 'Bolaang Mongondow Utara', 'Siau Tagulandang Biaro', 'Minahasa Tenggara', 'Bolaang Mongondow Selatan', 'Bolaang Mongondow Timur'
+  ];
+
+  // API Functions
+  const fetchPasiens = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        Alert.alert('Error', 'Token not found. Please login again.');
+        return;
+      }
+
+      const response = await axios.get('https://nazarfadil.me/api/pasiens', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data && response.data.data) {
+        setPasienData(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching pasiens:', error);
+      Alert.alert('Error', 'Failed to fetch patient data');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Initialize data
+  useEffect(() => {
+    fetchPasiens();
+  }, []);
+
+  // Generate random RM number
+  const generateRM = () => {
+    return Math.floor(100000 + Math.random() * 900000); // 6 digit random number
+  };
+
+  // Validate NIK (must be 16 digits)
+  const validateNIK = (nik) => {
+    return nik.length === 16 && /^\d+$/.test(nik);
+  };
+
+  // Validate phone number (starts with 62, min 8 digits)
+  const validatePhoneNumber = (phone) => {
+    return phone.startsWith('62') && phone.length >= 10;
+  };
+
+  // Refresh data
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPasiens();
+  };
+
+  const getFilteredData = () => {
+    let filteredByTab = pasienData;
+    
+    if (activeTab === 'Laki-laki') {
+      filteredByTab = pasienData.filter(item => item.jns_kelamin === 'Laki-Laki');
+    } else if (activeTab === 'Perempuan') {
+      filteredByTab = pasienData.filter(item => item.jns_kelamin === 'Perempuan');
+    }
+
+    return filteredByTab.filter(item =>
+      item.rm.toString().includes(searchText) ||
+      item.nama_pasien.toLowerCase().includes(searchText.toLowerCase()) ||
+      item.nik.includes(searchText)
+    );
+  };
 
   const filteredData = pasienData.filter(item =>
     item.rm.toString().includes(searchText) ||
@@ -159,11 +144,11 @@ const Pasien = ({ navigation }) => {
   );
 
   const getGenderIcon = (gender) => {
-    return gender === 'L' ? 'gender-male' : 'gender-female';
+    return gender === 'Laki-Laki' ? 'gender-male' : 'gender-female';
   };
 
   const getGenderColor = (gender) => {
-    return gender === 'L' ? '#2196F3' : '#E91E63';
+    return gender === 'Laki-Laki' ? '#2196F3' : '#E91E63';
   };
 
   const formatDate = (dateString) => {
@@ -185,32 +170,86 @@ const Pasien = ({ navigation }) => {
     return age;
   };
 
-  const handleAddPasien = () => {
-    if (!newPasien.rm || !newPasien.nik || !newPasien.nama_pasien) {
+  const handleAddPasien = async () => {
+    // Validation
+    if (!newPasien.nama_pasien || !newPasien.nik || !newPasien.tgl_lahir || !newPasien.kabupaten || !newPasien.no_hp_pasien) {
       Alert.alert('Error', 'Mohon isi semua field yang diperlukan');
       return;
     }
 
-    // Check if RM already exists
-    const rmExists = pasienData.some(item => item.rm.toString() === newPasien.rm);
-    if (rmExists) {
-      Alert.alert('Error', 'No. RM sudah ada');
+    // Validate NIK
+    if (!validateNIK(newPasien.nik)) {
+      Alert.alert('Error', 'NIK harus 16 digit angka');
       return;
     }
 
-    // Check if NIK already exists
-    const nikExists = pasienData.some(item => item.nik === newPasien.nik);
-    if (nikExists) {
-      Alert.alert('Error', 'NIK sudah terdaftar');
+    // Validate phone number
+    if (!validatePhoneNumber(newPasien.no_hp_pasien)) {
+      Alert.alert('Error', 'No. HP harus dimulai dengan 62 dan minimal 10 digit');
       return;
     }
 
-    const pasien = {
-      ...newPasien,
-      rm: parseInt(newPasien.rm)
-    };
+    // Validate birth date (not future date)
+    const birthDate = new Date(newPasien.tgl_lahir);
+    const today = new Date();
+    if (birthDate > today) {
+      Alert.alert('Error', 'Tanggal lahir tidak boleh lebih dari hari ini');
+      return;
+    }
 
-    setPasienData([...pasienData, pasien]);
+    try {
+      setSubmitting(true);
+      const token = await AsyncStorage.getItem('access_token');
+      
+      if (!token) {
+        Alert.alert('Error', 'Token not found. Please login again.');
+        return;
+      }
+
+      // Generate RM number
+      const rmNumber = generateRM();
+
+      // Format birth date to ISO string
+      const formattedBirthDate = new Date(newPasien.tgl_lahir).toISOString();
+
+      await axios.post('https://nazarfadil.me/api/pasiens', {
+        rm: rmNumber,
+        nik: parseInt(newPasien.nik),
+        nama_pasien: newPasien.nama_pasien,
+        tgl_lahir: formattedBirthDate,
+        agama: newPasien.agama,
+        kabupaten: newPasien.kabupaten,
+        pekerjaan: newPasien.pekerjaan,
+        jns_kelamin: newPasien.jns_kelamin,
+        alamat: newPasien.alamat,
+        no_hp_pasien: newPasien.no_hp_pasien,
+        email_pasien: newPasien.email_pasien,
+        gol_darah: newPasien.gol_darah
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      Alert.alert('Berhasil', 'Data pasien berhasil ditambahkan');
+      resetForm();
+      setShowAddModal(false);
+      fetchPasiens(); // Refresh the list
+    } catch (error) {
+    // Handle API error secara detail
+      console.error('Error adding pasien:', error);
+      if (error.response?.data?.message) {
+        Alert.alert('Error', error.response.data.message);
+      } else {
+        Alert.alert('Error', 'Gagal menambahkan data pasien');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
     setNewPasien({
       rm: '',
       nik: '',
@@ -219,14 +258,14 @@ const Pasien = ({ navigation }) => {
       agama: 'Islam',
       kabupaten: '',
       pekerjaan: '',
-      jns_kelamin: 'L',
+      jns_kelamin: 'Laki-Laki',
       alamat: '',
       no_hp_pasien: '',
       email_pasien: '',
       gol_darah: 'O'
     });
-    setShowAddModal(false);
-    Alert.alert('Berhasil', 'Data pasien berhasil ditambahkan');
+    setShowKabupatenDropdown(false);
+    setShowAgamaDropdown(false);
   };
 
   const renderPasienCard = ({ item, index }) => (
@@ -286,7 +325,10 @@ const Pasien = ({ navigation }) => {
         </View>
         <TouchableOpacity 
           style={styles.addButton}
-          onPress={() => setShowAddModal(true)}
+          onPress={() => {
+            resetForm();
+            setShowAddModal(true);
+          }}
         >
           <Text style={styles.addButtonText}>Tambah</Text>
           <Icon name="plus" size={20} color="white" />
@@ -341,15 +383,35 @@ const Pasien = ({ navigation }) => {
 
         {/* Patient Cards */}
         <View style={styles.cardsContainer}>
-          <FlatList
-            data={filteredData}
-            renderItem={renderPasienCard}
-            keyExtractor={(item) => item.rm.toString()}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.cardsList}
-            bounces={false}
-            overScrollMode="never"
-          />
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#2A9DF4" />
+              <Text style={styles.loadingText}>Loading data pasien...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={getFilteredData()}
+              renderItem={renderPasienCard}
+              keyExtractor={(item) => item.rm.toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.cardsList}
+              bounces={false}
+              overScrollMode="never"
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#2A9DF4']}
+                />
+              }
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Icon name="folder-open-outline" size={48} color="#ccc" />
+                  <Text style={styles.emptyText}>Tidak ada data pasien</Text>
+                </View>
+              }
+            />
+          )}
         </View>
       </View>
 
@@ -372,24 +434,12 @@ const Pasien = ({ navigation }) => {
 
               <View style={styles.formContainer}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>No. RM</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={newPasien.rm}
-                    onChangeText={(text) => setNewPasien({...newPasien, rm: text})}
-                    placeholder="Masukkan No. RM"
-                    placeholderTextColor="#999"
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>NIK</Text>
+                  <Text style={styles.inputLabel}>NIK (16 digit)</Text>
                   <TextInput
                     style={styles.textInput}
                     value={newPasien.nik}
                     onChangeText={(text) => setNewPasien({...newPasien, nik: text})}
-                    placeholder="Masukkan NIK"
+                    placeholder="Masukkan NIK 16 digit"
                     placeholderTextColor="#999"
                     keyboardType="numeric"
                     maxLength={16}
@@ -413,9 +463,89 @@ const Pasien = ({ navigation }) => {
                     style={styles.textInput}
                     value={newPasien.tgl_lahir}
                     onChangeText={(text) => setNewPasien({...newPasien, tgl_lahir: text})}
-                    placeholder="YYYY-MM-DD"
+                    placeholder="YYYY-MM-DD (contoh: 1990-01-15)"
                     placeholderTextColor="#999"
                   />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Agama</Text>
+                  <TouchableOpacity 
+                    style={styles.dropdownButton}
+                    onPress={() => setShowAgamaDropdown(!showAgamaDropdown)}
+                  >
+                    <Text style={styles.dropdownButtonText}>{newPasien.agama}</Text>
+                    <Icon name="chevron-down" size={20} color="#666" />
+                  </TouchableOpacity>
+
+                  {showAgamaDropdown && (
+                    <View style={styles.dropdownContainer}>
+                      <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
+                        {agamaOptions.map((agama) => (
+                          <TouchableOpacity
+                            key={agama}
+                            style={[
+                              styles.dropdownOption,
+                              newPasien.agama === agama && styles.selectedOption
+                            ]}
+                            onPress={() => {
+                              setNewPasien({...newPasien, agama: agama});
+                              setShowAgamaDropdown(false);
+                            }}
+                          >
+                            <View style={[
+                              styles.radioCircle,
+                              newPasien.agama === agama && styles.radioSelected
+                            ]}>
+                              {newPasien.agama === agama && <View style={styles.radioDot} />}
+                            </View>
+                            <Text style={styles.dropdownText}>{agama}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Kabupaten</Text>
+                  <TouchableOpacity 
+                    style={styles.dropdownButton}
+                    onPress={() => setShowKabupatenDropdown(!showKabupatenDropdown)}
+                  >
+                    <Text style={[styles.dropdownButtonText, !newPasien.kabupaten && styles.placeholderText]}>
+                      {newPasien.kabupaten || 'Pilih Kabupaten'}
+                    </Text>
+                    <Icon name="chevron-down" size={20} color="#666" />
+                  </TouchableOpacity>
+
+                  {showKabupatenDropdown && (
+                    <View style={styles.dropdownContainer}>
+                      <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
+                        {kabupatenOptions.map((kabupaten) => (
+                          <TouchableOpacity
+                            key={kabupaten}
+                            style={[
+                              styles.dropdownOption,
+                              newPasien.kabupaten === kabupaten && styles.selectedOption
+                            ]}
+                            onPress={() => {
+                              setNewPasien({...newPasien, kabupaten: kabupaten});
+                              setShowKabupatenDropdown(false);
+                            }}
+                          >
+                            <View style={[
+                              styles.radioCircle,
+                              newPasien.kabupaten === kabupaten && styles.radioSelected
+                            ]}>
+                              {newPasien.kabupaten === kabupaten && <View style={styles.radioDot} />}
+                            </View>
+                            <Text style={styles.dropdownText}>{kabupaten}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -433,7 +563,7 @@ const Pasien = ({ navigation }) => {
                         ]}>
                           {newPasien.jns_kelamin === option && <View style={styles.radioDot} />}
                         </View>
-                        <Text style={styles.radioText}>{option === 'L' ? 'Laki-laki' : 'Perempuan'}</Text>
+                        <Text style={styles.radioText}>{option}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -461,17 +591,6 @@ const Pasien = ({ navigation }) => {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Kabupaten</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={newPasien.kabupaten}
-                    onChangeText={(text) => setNewPasien({...newPasien, kabupaten: text})}
-                    placeholder="Masukkan Kabupaten"
-                    placeholderTextColor="#999"
-                  />
-                </View>
-
-                <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Pekerjaan</Text>
                   <TextInput
                     style={styles.textInput}
@@ -483,25 +602,25 @@ const Pasien = ({ navigation }) => {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Alamat</Text>
+                  <Text style={styles.inputLabel}>Alamat Lengkap</Text>
                   <TextInput
-                    style={[styles.textInput, styles.textArea]}
+                    style={[styles.textInput, styles.textAreaLarge]}
                     value={newPasien.alamat}
                     onChangeText={(text) => setNewPasien({...newPasien, alamat: text})}
                     placeholder="Masukkan Alamat Lengkap"
                     placeholderTextColor="#999"
                     multiline
-                    numberOfLines={3}
+                    numberOfLines={4}
                   />
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>No. HP</Text>
+                  <Text style={styles.inputLabel}>No. HP (mulai dengan 62)</Text>
                   <TextInput
                     style={styles.textInput}
                     value={newPasien.no_hp_pasien}
                     onChangeText={(text) => setNewPasien({...newPasien, no_hp_pasien: text})}
-                    placeholder="Masukkan No. HP"
+                    placeholder="62xxxxxxxxx"
                     placeholderTextColor="#999"
                     keyboardType="phone-pad"
                   />
@@ -530,8 +649,13 @@ const Pasien = ({ navigation }) => {
                 <TouchableOpacity 
                   style={styles.saveButton}
                   onPress={handleAddPasien}
+                  disabled={submitting}
                 >
-                  <Text style={styles.saveButtonText}>Simpan</Text>
+                  {submitting ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Simpan</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -774,6 +898,78 @@ const styles = StyleSheet.create({
   textArea: {
     height: 80,
     textAlignVertical: 'top',
+  },
+  textAreaLarge: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: '#f9f9f9',
+  },
+  dropdownButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  placeholderText: {
+    color: '#999',
+  },
+  dropdownContainer: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    marginTop: 5,
+    backgroundColor: '#fff',
+    maxHeight: 200,
+  },
+  dropdownScroll: {
+    maxHeight: 200,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginBottom: 5,
+  },
+  selectedOption: {
+    backgroundColor: '#F0F8FF',
+  },
+  dropdownText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 10,
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  emptyText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#999',
   },
   radioContainer: {
     flexDirection: 'row',
