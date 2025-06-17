@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./src/assets/images/logo.png",
     "userInterfaceStyle": "automatic",
+    "statusBarStyle": "default",
     "splash": {
       "image": "./src/assets/images/logo.png",
       "resizeMode": "contain",
@@ -15,7 +16,8 @@
       "src/assets/**"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "statusBarStyle": "default"
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +25,11 @@
         "backgroundColor": "#2A9DF4"
       },
       "package": "com.rsi.simrs",
-      "versionCode": 1
+      "versionCode": 1,
+      "statusBar": {
+        "barStyle": "default",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "web": {
       "favicon": "./src/assets/images/logo.png"

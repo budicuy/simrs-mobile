@@ -5,18 +5,15 @@ import {
   View, 
   TextInput, 
   TouchableOpacity, 
-  SafeAreaView,
   ScrollView,
   StatusBar,
-  Alert,
-  Image
+  Alert
 } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Untuk ikon amplop
 import LockIcon from 'react-native-vector-icons/Ionicons'; // Untuk ikon kunci
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const logo = require('../assets/images/logo.png');
 
 const Login = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -117,15 +114,14 @@ const Login = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" />
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" translucent={false} />
       
       {/* BAGIAN ATAS (HEADER BIRU) */}
       <View style={styles.headerContainer}>
-        <Image 
-          source={logo} // Ganti dengan path logo Anda
-          style={styles.logo}
-        />
+        <View style={styles.logoContainer}>
+          <Icon name="hospital-building" size={80} color="white" />
+        </View>
         <Text style={styles.headerText}>RUMAH SAKIT ISLAM</Text>
       </View>
 
@@ -207,6 +203,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     fontSize: 50,
     paddingBottom: 20,
+  },
+  logoContainer: {
+    width: 120,
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 60,
+    marginBottom: 15,
   },
   logo: {
     width: 120,

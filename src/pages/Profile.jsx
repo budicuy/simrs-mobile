@@ -3,12 +3,12 @@ import {
   StyleSheet, 
   Text, 
   View, 
-  SafeAreaView, 
   StatusBar,
   TouchableOpacity,
   Alert,
   ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -62,8 +62,8 @@ const Profile = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" translucent={false} />
       
       {/* Header */}
       <View style={styles.header}>

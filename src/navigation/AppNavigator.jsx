@@ -3,6 +3,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import Login from '../pages/Login';
@@ -42,11 +43,15 @@ const MainTabNavigator = () => {
         tabBarInactiveTintColor: '#999',
         tabBarStyle: {
           backgroundColor: 'white',
-          borderTopWidth:1,
+          borderTopWidth: 1,
           borderTopColor: '#E5E7EB',
           paddingBottom: 8,
           paddingTop: 8,
-          height: 60,
+          height: 70,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -96,44 +101,46 @@ const MainTabNavigator = () => {
 // Main Stack Navigator
 const AppNavigator = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator 
-        initialRouteName="Login"
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        <Stack.Screen 
-          name="Login" 
-          component={Login} 
-          options={{
-            title: 'Login'
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <Stack.Navigator 
+          initialRouteName="Login"
+          screenOptions={{
+            headerShown: false,
           }}
-        />
-        <Stack.Screen 
-          name="Main" 
-          component={MainTabNavigator} 
-          options={{
-            title: 'SIMRS Hospital',
-            gestureEnabled: false,
-          }}
-        />
-        <Stack.Screen 
-          name="Pasien" 
-          component={Pasien} 
-          options={{
-            title: 'Pasien'
-          }}
-        />
-        <Stack.Screen 
-          name="Layanan" 
-          component={Layanan} 
-          options={{
-            title: 'Layanan'
-          }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+        >
+          <Stack.Screen 
+            name="Login" 
+            component={Login} 
+            options={{
+              title: 'Login'
+            }}
+          />
+          <Stack.Screen 
+            name="Main" 
+            component={MainTabNavigator} 
+            options={{
+              title: 'SIMRS Hospital',
+              gestureEnabled: false,
+            }}
+          />
+          <Stack.Screen 
+            name="Pasien" 
+            component={Pasien} 
+            options={{
+              title: 'Pasien'
+            }}
+          />
+          <Stack.Screen 
+            name="Layanan" 
+            component={Layanan} 
+            options={{
+              title: 'Layanan'
+            }}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 };
 

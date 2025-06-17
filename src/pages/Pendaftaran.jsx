@@ -3,7 +3,6 @@ import {
   StyleSheet, 
   Text, 
   View, 
-  SafeAreaView, 
   StatusBar,
   TouchableOpacity,
   TextInput,
@@ -11,6 +10,7 @@ import {
   Alert,
   FlatList
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Pendaftaran = ({ navigation }) => {
@@ -160,8 +160,8 @@ const Pendaftaran = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" translucent={false} />
       
       {/* Header */}
       <View style={styles.header}>
@@ -379,6 +379,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 90, // Extra space untuk tab navigation
   },
   tabContainer: {
     flexDirection: 'row',
@@ -437,8 +438,7 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flex: 1,
-    marginBottom: 80, // Space for bottom navbar
-    marginBottom: 80, // Space for bottom navbar
+    marginBottom: 20,
   },
   cardsList: {
     paddingBottom: 30,

@@ -3,7 +3,6 @@ import {
   StyleSheet, 
   Text, 
   View, 
-  SafeAreaView, 
   StatusBar,
   TouchableOpacity,
   ScrollView,
@@ -12,6 +11,7 @@ import {
   Alert,
   FlatList
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Layanan = ({ navigation }) => {
@@ -471,8 +471,8 @@ const Layanan = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" />
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" translucent={false} />
       
       {/* Header */}
       <View style={styles.header}>
