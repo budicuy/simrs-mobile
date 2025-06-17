@@ -11,7 +11,8 @@ import {
   FlatList,
   ActivityIndicator,
   RefreshControl,
-  ScrollView
+  ScrollView,
+  Vibration
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -28,6 +29,8 @@ const Pendaftaran = ({ navigation }) => {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0); // Add force update state
+  const [statusChanging, setStatusChanging] = useState(false); // Add status changing state
   
   // API Data States
   const [pendaftaranData, setPendaftaranData] = useState([]);
@@ -38,12 +41,17 @@ const Pendaftaran = ({ navigation }) => {
   const [newPendaftaran, setNewPendaftaran] = useState({
     rm: '',
     id_poli: '',
-    tgl_kunjungan: new Date().toISOString().split('T')[0], // Today's date
+    tgl_kunjungan: new Date().toISOString(), // ISO datetime format
     no_antrian: '',
-    status: 'Menunggu'
+    status: 'Menunggu' // Default status as string
   });
 
-  const statusOptions = ['Menunggu', 'Proses', 'Selesai', 'Batalkan'];
+  const statusOptions = [
+    { label: 'Menunggu', value: 'Menunggu' },
+    { label: 'Dipanggil', value: 'Dipanggil' },
+    { label: 'Diperiksa', value: 'Diperiksa' },
+    { label: 'Selesai', value: 'Selesai' }
+  ];
 
   // Load data on component mount
   useEffect(() => {
@@ -132,11 +140,13 @@ const Pendaftaran = ({ navigation }) => {
 
   const generateQueueNumber = (poliId, date) => {
     // Count existing registrations for this clinic on this date
+    const today = new Date().toISOString().split('T')[0];
     const existingCount = pendaftaranData.filter(item => 
-      item.id_poli === poliId && item.tgl_kunjungan === date
+      parseInt(item.id_poli) === parseInt(poliId) && 
+      item.tgl_kunjungan.split('T')[0] === today
     ).length;
     
-    return (existingCount + 1).toString().padStart(3, '0');
+    return existingCount + 1; // Return as integer
   };
 
   const getPatientNameByRM = (rm) => {
@@ -155,9 +165,18 @@ const Pendaftaran = ({ navigation }) => {
 
     // Filter by tab
     if (activeTab === 'Hari ini') {
-      filtered = filtered.filter(item => isToday(item.tgl_kunjungan));
+      filtered = filtered.filter(item => {
+        const itemDate = new Date(item.tgl_kunjungan).toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
+        return itemDate === today && item.status !== 'Selesai'; // Not "Selesai"
+      });
     } else {
-      filtered = filtered.filter(item => !isToday(item.tgl_kunjungan) || item.status === 'Selesai' || item.status === 'Batalkan');
+      // Riwayat: show completed registrations or past dates
+      filtered = filtered.filter(item => {
+        const itemDate = new Date(item.tgl_kunjungan).toISOString().split('T')[0];
+        const today = new Date().toISOString().split('T')[0];
+        return item.status === 'Selesai' || itemDate < today;
+      });
     }
 
     // Filter by search text
@@ -168,37 +187,73 @@ const Pendaftaran = ({ navigation }) => {
         const searchLower = searchText.toLowerCase();
         
         return (
-          item.rm.toLowerCase().includes(searchLower) ||
+          item.rm.toString().toLowerCase().includes(searchLower) ||
           patientName.includes(searchLower) ||
           clinicName.includes(searchLower) ||
-          item.no_antrian.toLowerCase().includes(searchLower)
+          item.no_antrian.toString().toLowerCase().includes(searchLower)
         );
       });
     }
 
     // Sort by clinic ID and then by queue number
     return filtered.sort((a, b) => {
-      if (a.id_poli !== b.id_poli) {
-        return a.id_poli - b.id_poli;
+      if (parseInt(a.id_poli) !== parseInt(b.id_poli)) {
+        return parseInt(a.id_poli) - parseInt(b.id_poli);
       }
-      return parseInt(a.no_antrian) - parseInt(b.no_antrian);
+      return parseInt(a.no_antrian) - parseInt(b.no_antrian); // Ensure both are integers
     });
   };
 
   const filteredData = getFilteredData();
 
   const getStatusColor = (status) => {
+    console.log('Getting color for status:', status); // Debug log
     switch (status) {
       case 'Menunggu':
-        return '#FF5722';
-      case 'Proses':
-        return '#FF9800';
+        return '#FF5722';  // Red
+      case 'Dipanggil':
+        return '#FFC107';  // Orange/Yellow
+      case 'Diperiksa':
+        return '#4CAF50';  // Green
       case 'Selesai':
-        return '#4CAF50';
-      case 'Batalkan':
-        return '#9E9E9E';
+        return '#2196F3';  // Blue
       default:
-        return '#9E9E9E';
+        console.log('Unknown status:', status); // Debug log
+        return '#9E9E9E';  // Gray
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    return status || 'Unknown';
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'Menunggu':
+        return 'clock-outline';
+      case 'Dipanggil':
+        return 'account-voice';
+      case 'Diperiksa':
+        return 'stethoscope';
+      case 'Selesai':
+        return 'check-circle';
+      default:
+        return 'help-circle-outline';
+    }
+  };
+
+  const getStatusDescription = (status) => {
+    switch (status) {
+      case 'Menunggu':
+        return 'Pasien sedang menunggu untuk dipanggil';
+      case 'Dipanggil':
+        return 'Pasien telah dipanggil untuk pemeriksaan';
+      case 'Diperiksa':
+        return 'Pasien sedang dalam pemeriksaan';
+      case 'Selesai':
+        return 'Pemeriksaan telah selesai dilakukan';
+      default:
+        return 'Status tidak diketahui';
     }
   };
 
@@ -211,21 +266,6 @@ const Pendaftaran = ({ navigation }) => {
       Alert.alert('Error', 'Silakan pilih poli/klinik');
       return false;
     }
-    if (!newPendaftaran.tgl_kunjungan) {
-      Alert.alert('Error', 'Tanggal kunjungan harus diisi');
-      return false;
-    }
-    
-    // Check if date is not in the past (except today)
-    const selectedDate = new Date(newPendaftaran.tgl_kunjungan);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    selectedDate.setHours(0, 0, 0, 0);
-    
-    if (selectedDate < today) {
-      Alert.alert('Error', 'Tanggal kunjungan tidak boleh di masa lalu');
-      return false;
-    }
     
     return true;
   };
@@ -236,18 +276,25 @@ const Pendaftaran = ({ navigation }) => {
     try {
       setLoading(true);
       
-      // Generate queue number
+      // Generate queue number as integer
       const queueNumber = generateQueueNumber(newPendaftaran.id_poli, newPendaftaran.tgl_kunjungan);
+      console.log('Generated queue number type:', typeof queueNumber, 'value:', queueNumber);
       
-      const pendaftaranData = {
-        ...newPendaftaran,
-        no_antrian: queueNumber
+      const pendaftaranPayload = {
+        rm: parseInt(newPendaftaran.rm), // Ensure RM is integer
+        id_poli: parseInt(newPendaftaran.id_poli), // Ensure poli ID is integer
+        tgl_kunjungan: newPendaftaran.tgl_kunjungan,
+        no_antrian: parseInt(queueNumber), // Ensure this is integer
+        status: newPendaftaran.status
       };
+
+      console.log('Sending pendaftaran data:', pendaftaranPayload);
+      console.log('no_antrian type:', typeof pendaftaranPayload.no_antrian);
 
       const token = await AsyncStorage.getItem('access_token');
       const response = await axios.post(
         'https://nazarfadil.me/api/pendaftarans',
-        pendaftaranData,
+        pendaftaranPayload,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -261,31 +308,71 @@ const Pendaftaran = ({ navigation }) => {
         setNewPendaftaran({
           rm: '',
           id_poli: '',
-          tgl_kunjungan: new Date().toISOString().split('T')[0],
+          tgl_kunjungan: new Date().toISOString(),
           no_antrian: '',
           status: 'Menunggu'
         });
         setShowAddModal(false);
-        await fetchPendaftarans(); // Refresh data
+        // Automatically refresh data after successful addition
+        await fetchPendaftarans();
       } else {
         Alert.alert('Error', response.data.message || 'Gagal menambahkan pendaftaran');
       }
     } catch (error) {
-      console.error('Error adding pendaftaran:', error.response || error);
-      Alert.alert('Error', 'Gagal menambahkan pendaftaran. Silakan coba lagi.', error);
+      console.error('Error adding pendaftaran:', error.response?.data || error);
+      const errorMessage = error.response?.data?.message || 'Gagal menambahkan pendaftaran. Silakan coba lagi.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusChange = async (pendaftaranId, newStatus) => {
+  const handleStatusChange = async (pendaftaran, newStatus) => {
     try {
+      setStatusChanging(true);
       setLoading(true);
+      
+      if (!pendaftaran) {
+        Alert.alert('Error', 'Data pendaftaran tidak ditemukan');
+        return;
+      }
+
+      // Haptic feedback
+      Vibration.vibrate(50);
+
+      // Store original data for potential rollback
+      const originalData = [...pendaftaranData];
+
+      // Update local state immediately for instant UI feedback with forced re-render
+      const updatedData = pendaftaranData.map(item => 
+        item.rm === pendaftaran.rm ? { ...item, status: newStatus, updatedAt: Date.now() } : item
+      );
+      setPendaftaranData(updatedData);
+      setForceUpdate(prev => prev + 1); // Force component re-render
+
+      // Close modal with smooth animation
+      setTimeout(() => {
+        setShowStatusModal(false);
+        setSelectedPatient(null);
+        setStatusChanging(false);
+      }, 300);
+
+      // Prepare the complete data payload
+      const updatePayload = {
+        rm: parseInt(pendaftaran.rm),
+        id_poli: parseInt(pendaftaran.id_poli),
+        tgl_kunjungan: pendaftaran.tgl_kunjungan,
+        no_antrian: parseInt(pendaftaran.no_antrian),
+        status: newStatus
+      };
+
+      console.log('Updating status with payload:', updatePayload);
+      console.log('Using RM for URL:', pendaftaran.rm);
       
       const token = await AsyncStorage.getItem('access_token');
       const response = await axios.put(
-        `https://nazarfadil.me/api/pendaftarans/${pendaftaranId}`,
-        { status: newStatus },
+        `https://nazarfadil.me/api/pendaftarans/${pendaftaran.rm}`,
+        updatePayload,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -295,30 +382,48 @@ const Pendaftaran = ({ navigation }) => {
       );
 
       if (response.data.success) {
+        // Show success message and refresh data to ensure consistency with server
+        console.log('Status updated successfully on server');
         Alert.alert('Berhasil', 'Status berhasil diubah');
-        await fetchPendaftarans(); // Refresh data
+        
+        // Force a fresh fetch to ensure data consistency
+        setTimeout(async () => {
+          await fetchPendaftarans();
+        }, 500);
       } else {
+        // Revert local state if API call failed
+        console.log('API call failed, reverting to original data');
+        setPendaftaranData(originalData);
         Alert.alert('Error', response.data.message || 'Gagal mengubah status');
       }
     } catch (error) {
-      console.error('Error changing status:', error);
-      Alert.alert('Error', 'Gagal mengubah status. Silakan coba lagi.');
+      // Revert local state if API call failed - need to store original data properly
+      console.error('Error changing status:', error.response?.data || error);
+      console.log('Error occurred, reverting to original data');
+      setPendaftaranData(originalData);
+      const errorMessage = error.response?.data?.message || 'Gagal mengubah status. Silakan coba lagi.';
+      Alert.alert('Error', errorMessage);
+      // Refresh data to get the correct state from server
+      await fetchPendaftarans();
     } finally {
       setLoading(false);
-      setShowStatusModal(false);
-      setSelectedPatient(null);
+      setStatusChanging(false);
     }
   };
 
   const renderPatientCard = ({ item, index }) => {
     const patientName = getPatientNameByRM(item.rm);
     const clinicName = getClinicNameById(item.id_poli);
+    const statusColor = getStatusColor(item.status);
+    const statusLabel = getStatusLabel(item.status);
     
     return (
       <View style={styles.patientCard}>
         <View style={styles.cardHeader}>
           <View style={styles.cardNumber}>
-            <Text style={styles.cardNumberText}>{item.no_antrian}</Text>
+            <Text style={styles.cardNumberText}>
+              {parseInt(item.no_antrian).toString().padStart(3, '0')}
+            </Text>
           </View>
           <View style={styles.cardInfo}>
             <Text style={styles.cardName}>{patientName}</Text>
@@ -340,8 +445,8 @@ const Pendaftaran = ({ navigation }) => {
               setShowStatusModal(true);
             }}
           >
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-              <Text style={styles.statusText}>{item.status}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+              <Text style={styles.statusText}>{statusLabel}</Text>
             </View>
             <Icon name="chevron-down" size={16} color="#666" style={styles.statusIcon} />
           </TouchableOpacity>
@@ -420,11 +525,12 @@ const Pendaftaran = ({ navigation }) => {
             <FlatList
               data={filteredData}
               renderItem={renderPatientCard}
-              keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+              keyExtractor={(item, index) => `${item.rm}-${item.status}-${item.updatedAt || 0}-${index}`}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.cardsList}
               bounces={false}
               overScrollMode="never"
+              extraData={`${pendaftaranData.length}-${forceUpdate}-${Date.now()}`}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -496,25 +602,13 @@ const Pendaftaran = ({ navigation }) => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Tanggal Kunjungan *</Text>
-                <TextInput
-                  style={styles.textInput}
-                  value={newPendaftaran.tgl_kunjungan}
-                  onChangeText={(text) => setNewPendaftaran({...newPendaftaran, tgl_kunjungan: text})}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#999"
-                />
-                <Text style={styles.inputHint}>Format: YYYY-MM-DD (contoh: 2025-06-17)</Text>
-              </View>
-
-              <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Status</Text>
                 <View style={styles.statusDisplay}>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(newPendaftaran.status) }]}>
-                    <Text style={styles.statusText}>{newPendaftaran.status}</Text>
+                    <Text style={styles.statusText}>{getStatusLabel(newPendaftaran.status)}</Text>
                   </View>
                   <Text style={styles.statusNote}>
-                    No. antrian akan digenerate otomatis
+                    No. antrian dan tanggal kunjungan akan digenerate otomatis
                   </Text>
                 </View>
               </View>
@@ -546,30 +640,106 @@ const Pendaftaran = ({ navigation }) => {
       {/* Status Change Modal */}
       <Modal
         visible={showStatusModal}
-        animationType="fade"
+        animationType="slide"
         transparent={true}
         onRequestClose={() => setShowStatusModal(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.statusModalContent}>
-            <Text style={styles.statusModalTitle}>Ubah Status</Text>
-            {statusOptions.map((status, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.statusOption}
-                onPress={() => handleStatusChange(selectedPatient?.id, status)}
-              >
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
-                  <Text style={styles.statusText}>{status}</Text>
+            {/* Header with patient info */}
+            <View style={styles.statusModalHeader}>
+              <View style={styles.patientInfoHeader}>
+                <View style={styles.patientAvatarContainer}>
+                  <Icon name="account-circle" size={28} color="#2A9DF4" />
                 </View>
+                <View style={styles.patientInfoText}>
+                  <Text style={styles.patientNameText} numberOfLines={1}>
+                    {selectedPatient ? getPatientNameByRM(selectedPatient.rm) : ''}
+                  </Text>
+                  <Text style={styles.patientRMText}>
+                    RM: {selectedPatient ? selectedPatient.rm : ''}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowStatusModal(false)}
+              >
+                <Icon name="close" size={20} color="#666" />
               </TouchableOpacity>
-            ))}
-            <TouchableOpacity 
-              style={styles.statusCancelButton}
-              onPress={() => setShowStatusModal(false)}
+            </View>
+
+            {/* Scrollable Content */}
+            <ScrollView 
+              style={styles.statusModalScrollView}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
             >
-              <Text style={styles.statusCancelText}>Batal</Text>
-            </TouchableOpacity>
+              {/* Title */}
+              <View style={styles.statusTitleContainer}>
+                <Icon name="clipboard-edit" size={20} color="#2A9DF4" />
+                <Text style={styles.statusModalTitle}>Ubah Status Pendaftaran</Text>
+              </View>
+
+              {/* Current Status */}
+              <View style={styles.currentStatusContainer}>
+                <Text style={styles.currentStatusLabel}>Status Saat Ini:</Text>
+                <View style={[styles.currentStatusBadge, { backgroundColor: selectedPatient ? getStatusColor(selectedPatient.status) : '#9E9E9E' }]}>
+                  <Text style={styles.currentStatusText}>
+                    {selectedPatient ? getStatusLabel(selectedPatient.status) : ''}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Status Options */}
+              <View style={styles.statusOptionsContainer}>
+                <Text style={styles.statusOptionsLabel}>Pilih Status Baru:</Text>
+                {statusOptions.map((status, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.statusOption,
+                      selectedPatient && selectedPatient.status === status.value && styles.currentStatusOption
+                    ]}
+                    onPress={() => handleStatusChange(selectedPatient, status.value)}
+                    disabled={selectedPatient && selectedPatient.status === status.value || statusChanging}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.statusOptionContent}>
+                      <View style={[styles.statusOptionBadge, { backgroundColor: getStatusColor(status.value) }]}>
+                        {statusChanging && selectedPatient && selectedPatient.status !== status.value ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Icon name={getStatusIcon(status.value)} size={14} color="white" />
+                        )}
+                      </View>
+                      <View style={styles.statusOptionInfo}>
+                        <Text style={styles.statusOptionLabel}>{status.label}</Text>
+                        <Text style={styles.statusOptionDescription} numberOfLines={2}>
+                          {getStatusDescription(status.value)}
+                        </Text>
+                      </View>
+                      {selectedPatient && selectedPatient.status === status.value ? (
+                        <Icon name="check-circle" size={18} color="#4CAF50" />
+                      ) : (
+                        <Icon name="chevron-right" size={18} color="#999" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+
+            {/* Footer */}
+            <View style={styles.statusModalFooter}>
+              <TouchableOpacity 
+                style={styles.statusCancelButton}
+                onPress={() => setShowStatusModal(false)}
+              >
+                <Icon name="close-circle-outline" size={16} color="#666" />
+                <Text style={styles.statusCancelText}>Batal</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -837,7 +1007,7 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -927,32 +1097,177 @@ const styles = StyleSheet.create({
   // Status Modal Styles
   statusModalContent: {
     backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    width: '80%',
+    borderRadius: 20,
+    width: '90%',
+    height: '90%',
+    marginVertical: 80,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+    minHeight: 300,
+  },
+  statusModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  statusModalScrollView: {
+    flex: 1,
+  },
+  patientInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  patientAvatarContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  patientInfoText: {
+    flex: 1,
+  },
+  patientNameText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  patientRMText: {
+    fontSize: 11,
+    color: '#666',
+  },
+  closeButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 10,
   },
   statusModalTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
-    textAlign: 'center',
+    marginLeft: 8,
+  },
+  currentStatusContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  currentStatusLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 6,
+  },
+  currentStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  currentStatusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statusOptionsContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 10,
+  },
+  statusOptionsLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
   },
   statusOption: {
-    paddingVertical: 10,
+    marginBottom: 10,
+    borderRadius: 10,
+    backgroundColor: '#FAFAFA',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+    transform: [{ scale: 1 }],
+  },
+  currentStatusOption: {
+    opacity: 0.6,
+    backgroundColor: '#F0F0F0',
+  },
+  statusOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+  },
+  statusOptionBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  statusOptionInfo: {
+    flex: 1,
+    marginRight: 8,
+  },
+  statusOptionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
+  },
+  statusOptionDescription: {
+    fontSize: 11,
+    color: '#666',
+    lineHeight: 14,
+  },
+  statusModalFooter: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
     alignItems: 'center',
   },
   statusCancelButton: {
-    marginTop: 15,
-    paddingVertical: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
   },
   statusCancelText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#666',
+    marginLeft: 4,
   },
   // Loading styles
   loadingContainer: {

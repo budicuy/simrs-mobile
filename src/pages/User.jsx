@@ -224,6 +224,7 @@ const User = ({ navigation }) => {
             ID: {item.id} • Theme: {item.theme}
           </Text>
         </View>
+
         <View style={styles.statusContainer}>
           <View style={[styles.themeBadge, { backgroundColor: getThemeColor(item.theme) }]}>
             <Icon name="palette" size={16} color="white" />
@@ -232,6 +233,7 @@ const User = ({ navigation }) => {
             {item.email_verified_at ? 'Verified' : 'Unverified'}
           </Text>
         </View>
+        
       </View>
       
       {/* Detail Info */}
