@@ -339,11 +339,11 @@ const Pasien = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'Laki-laki' && styles.activeTab]}
-            onPress={() => setActiveTab('Laki-laki')}
+            style={[styles.tab, activeTab === 'Pria' && styles.activeTab]}
+            onPress={() => setActiveTab('Pria')}
           >
-            <Text style={[styles.tabText, activeTab === 'Laki-laki' && styles.activeTabText]}>
-              Laki-laki
+            <Text style={[styles.tabText, activeTab === 'Pria' && styles.activeTabText]}>
+              Pria
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
