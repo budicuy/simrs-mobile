@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   ScrollView,
   StatusBar,
-  Alert
+  Alert,
+  Image
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'; // Untuk ikon amplop
@@ -120,7 +121,7 @@ const Login = ({ navigation }) => {
       {/* BAGIAN ATAS (HEADER BIRU) */}
       <View style={styles.headerContainer}>
         <View style={styles.logoContainer}>
-          <Icon name="hospital-building" size={80} color="white" />
+          <Image source={require('../assets/images/logo.png')} style={styles.logo} />
         </View>
         <Text style={styles.headerText}>RUMAH SAKIT ISLAM</Text>
       </View>
@@ -215,9 +216,9 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 15,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
   headerText: {
     color: 'white',

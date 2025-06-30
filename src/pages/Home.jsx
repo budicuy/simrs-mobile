@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -154,7 +155,11 @@ const Home = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.logoContainer}>
-            <Icon name="hospital-building" size={30} color="white" />
+            <Image 
+              source={require('../assets/images/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
           <View>
             <Text style={styles.hospitalName}>RUMAH SAKIT ISLAM</Text>
@@ -325,6 +330,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  logo: {
+    width: 28,
+    height: 28,
   },
   hospitalName: {
     color: 'white',
