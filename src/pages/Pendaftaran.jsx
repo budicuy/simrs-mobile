@@ -84,7 +84,7 @@ const Pendaftaran = ({ navigation }) => {
   const fetchPendaftarans = async () => {
     try {
       const token = await AsyncStorage.getItem('access_token');
-      const response = await axios.get('https://ti054a01.agussbn.my.id/api/pendaftarans', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/pendaftaran', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ const Pendaftaran = ({ navigation }) => {
   const fetchPasiens = async () => {
     try {
       const token = await AsyncStorage.getItem('access_token');
-      const response = await axios.get('https://ti054a01.agussbn.my.id/api/pasiens', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/pasien', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ const Pendaftaran = ({ navigation }) => {
   const fetchPolis = async () => {
     try {
       const token = await AsyncStorage.getItem('access_token');
-      const response = await axios.get('https://ti054a01.agussbn.my.id/api/polis', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/poli', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -293,7 +293,7 @@ const Pendaftaran = ({ navigation }) => {
 
       const token = await AsyncStorage.getItem('access_token');
       const response = await axios.post(
-        'https://ti054a01.agussbn.my.id/api/pendaftarans',
+        'https://ti054a01.agussbn.my.id/api/pendaftaran',
         pendaftaranPayload,
         {
           headers: {
@@ -371,7 +371,7 @@ const Pendaftaran = ({ navigation }) => {
       
       const token = await AsyncStorage.getItem('access_token');
       const response = await axios.put(
-        `https://ti054a01.agussbn.my.id/api/pendaftarans/${pendaftaran.rm}`,
+        `https://ti054a01.agussbn.my.id/api/pendaftaran/${pendaftaran.rm}`,
         updatePayload,
         {
           headers: {

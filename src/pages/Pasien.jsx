@@ -11,8 +11,10 @@ import {
   Alert,
   FlatList,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Platform
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import axios from 'axios';
@@ -30,13 +32,14 @@ const Pasien = ({ navigation }) => {
   const [pasienData, setPasienData] = useState([]);
   const [showKabupatenDropdown, setShowKabupatenDropdown] = useState(false);
   const [showAgamaDropdown, setShowAgamaDropdown] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Form states
   const [newPasien, setNewPasien] = useState({
     rm: '',
     nik: '',
     nama_pasien: '',
-    tgl_lahir: '',
+    tgl_lahir: new Date(),
     agama: 'Islam',
     kabupaten: '',
     pekerjaan: '',
@@ -125,14 +128,14 @@ const Pasien = ({ navigation }) => {
     return filteredByTab.filter(item =>
       item.rm.toString().includes(searchText) ||
       item.nama_pasien.toLowerCase().includes(searchText.toLowerCase()) ||
-      item.nik.includes(searchText)
+      (item.nik && item.nik.toString().includes(searchText))
     );
   };
 
   const filteredData = pasienData.filter(item =>
     item.rm.toString().includes(searchText) ||
     item.nama_pasien.toLowerCase().includes(searchText.toLowerCase()) ||
-    item.nik.includes(searchText)
+    (item.nik && item.nik.toString().includes(searchText))
   );
 
   const getGenderIcon = (gender) => {
@@ -170,7 +173,7 @@ const Pasien = ({ navigation }) => {
     }
 
     // Validate NIK
-    if (!validateNIK(newPasien.nik)) {
+    if (!validateNIK(newPasien.nik.toString())) {
       Alert.alert('Error', 'NIK harus 16 digit angka');
       return;
     }
@@ -202,9 +205,9 @@ const Pasien = ({ navigation }) => {
       const rmNumber = generateRM();
 
       // Format birth date to datetime format
-      const formattedBirthDate = new Date(newPasien.tgl_lahir).toISOString().slice(0, 19).replace('T', ' ');
+      const formattedBirthDate = newPasien.tgl_lahir.toISOString().slice(0, 19).replace('T', ' ');
 
-      await axios.post('https://ti054a01.agussbn.my.id/api/pasiens', {
+      await axios.post('https://ti054a01.agussbn.my.id/api/pasien', {
         rm: rmNumber,
         nik: parseInt(newPasien.nik),
         nama_pasien: newPasien.nama_pasien,
@@ -246,7 +249,7 @@ const Pasien = ({ navigation }) => {
       rm: '',
       nik: '',
       nama_pasien: '',
-      tgl_lahir: '',
+      tgl_lahir: new Date(),
       agama: 'Islam',
       kabupaten: '',
       pekerjaan: '',
@@ -258,6 +261,21 @@ const Pasien = ({ navigation }) => {
     });
     setShowKabupatenDropdown(false);
     setShowAgamaDropdown(false);
+    setShowDatePicker(false);
+  };
+
+  const onDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || newPasien.tgl_lahir;
+    setShowDatePicker(Platform.OS === 'ios');
+    setNewPasien({...newPasien, tgl_lahir: currentDate});
+  };
+
+  const formatDateForDisplay = (date) => {
+    return date.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric'
+    });
   };
 
   const renderPasienCard = ({ item, index }) => (
@@ -268,7 +286,7 @@ const Pasien = ({ navigation }) => {
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.cardName}>{item.nama_pasien}</Text>
-          <Text style={styles.cardSubInfo}>RM: {item.rm} • NIK: {item.nik}</Text>
+          <Text style={styles.cardSubInfo}>RM: {item.rm} • NIK: {item.nik || 'N/A'}</Text>
           <Text style={styles.cardSubInfo}>
             {calculateAge(item.tgl_lahir)} tahun • {item.kabupaten}
           </Text>
@@ -339,18 +357,18 @@ const Pasien = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'Pria' && styles.activeTab]}
+            style={[styles.tab, activeTab == 'Pria' && styles.activeTab]}
             onPress={() => setActiveTab('Pria')}
           >
-            <Text style={[styles.tabText, activeTab === 'Pria' && styles.activeTabText]}>
+            <Text style={[styles.tabText, activeTab == 'Pria' && styles.activeTabText]}>
               Pria
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.tab, activeTab === 'Perempuan' && styles.activeTab]}
+            style={[styles.tab, activeTab == 'Perempuan'  && styles.activeTab]}
             onPress={() => setActiveTab('Perempuan')}
           >
-            <Text style={[styles.tabText, activeTab === 'Perempuan' && styles.activeTabText]}>
+            <Text style={[styles.tabText, activeTab == 'Perempuan' && styles.activeTabText]}>
               Perempuan
             </Text>
           </TouchableOpacity>
@@ -451,13 +469,25 @@ const Pasien = ({ navigation }) => {
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Tanggal Lahir</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={newPasien.tgl_lahir}
-                    onChangeText={(text) => setNewPasien({...newPasien, tgl_lahir: text})}
-                    placeholder="YYYY-MM-DD HH:MM:SS (contoh: 2025-06-30 13:09:46)"
-                    placeholderTextColor="#999"
-                  />
+                  <TouchableOpacity 
+                    style={styles.datePickerButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={styles.datePickerButtonText}>
+                      {formatDateForDisplay(newPasien.tgl_lahir)}
+                    </Text>
+                    <Icon name="calendar" size={20} color="#666" />
+                  </TouchableOpacity>
+
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={newPasien.tgl_lahir}
+                      mode="date"
+                      display="default"
+                      onChange={onDateChange}
+                      maximumDate={new Date()}
+                    />
+                  )}
                 </View>
 
                 <View style={styles.inputGroup}>
@@ -1027,6 +1057,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: 'white',
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: '#f9f9f9',
+  },
+  datePickerButtonText: {
+    fontSize: 14,
+    color: '#333',
   },
 });
 

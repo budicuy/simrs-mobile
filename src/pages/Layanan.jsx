@@ -21,60 +21,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const Layanan = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('Dokter');
   const [searchText, setSearchText] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   // API Data states
-  const [userData, setUserData] = useState([]);
   const [dokterData, setDokterData] = useState([]);
   const [perawatData, setPerawatData] = useState([]);
   const [poliData, setPoliData] = useState([]);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [showDokterDropdown, setShowDokterDropdown] = useState(false);
-  const [showPerawatDropdown, setShowPerawatDropdown] = useState(false);
-
-  // Form states
-  const [newDokter, setNewDokter] = useState({
-    nama_dokter: '',
-    no_hp_dokter: '',
-    id_user: 0
-  });
-
-  const [newPerawat, setNewPerawat] = useState({
-    nama_perawat: '',
-    no_hp_perawat: '',
-    id_user: 0
-  });
-
-  const [newPoli, setNewPoli] = useState({
-    nama_poli: '',
-    id_dokter: 0,
-    id_perawat: 0
-  });
 
   // API Functions
-  const fetchUsers = async () => {
-    try {
-      const token = await AsyncStorage.getItem('access_token');
-      if (!token) return;
-
-      const response = await axios.get('https://ti054a01.agussbn.my.id/api/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.data && response.data.data) {
-        setUserData(response.data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
   const fetchDokters = async () => {
     try {
       setLoading(true);
@@ -84,7 +39,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.get('https://ti054a01.agussbn.my.id/api/dokters', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/dokter', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -112,7 +67,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.get('https://ti054a01.agussbn.my.id/api/perawats', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/perawat', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -140,7 +95,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.get('https://ti054a01.agussbn.my.id/api/polis', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/poli', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -161,7 +116,6 @@ const Layanan = ({ navigation }) => {
 
   // Initialize data
   useEffect(() => {
-    fetchUsers();
     fetchDokters();
     fetchPerawats();
     fetchPolis();
@@ -181,27 +135,6 @@ const Layanan = ({ navigation }) => {
         break;
     }
   }, [activeTab]);
-
-  // Helper functions
-  const getUserById = (id) => {
-    const user = userData.find(u => u.id === id);
-    return user ? user.email : `User ID: ${id}`;
-  };
-
-  const getUserNameById = (id) => {
-    const user = userData.find(u => u.id === id);
-    return user ? user.name : `User ID: ${id}`;
-  };
-
-  const getDokterById = (id) => {
-    const dokter = dokterData.find(d => d.id === id);
-    return dokter ? dokter.nama_dokter : 'Tidak ada';
-  };
-
-  const getPerawatById = (id) => {
-    const perawat = perawatData.find(p => p.id === id);
-    return perawat ? perawat.nama_perawat : 'Tidak ada';
-  };
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -224,166 +157,27 @@ const Layanan = ({ navigation }) => {
     switch (activeTab) {
       case 'Dokter':
         return dokterData.filter(item =>
-          item.nama_dokter.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.no_hp_dokter.includes(searchText) ||
-          getUserById(item.id_user).toLowerCase().includes(searchText.toLowerCase())
+          item.nama_dokter && item.nama_dokter.toLowerCase().includes(searchText.toLowerCase()) ||
+          (item.spesialis && item.spesialis.toLowerCase().includes(searchText.toLowerCase())) ||
+          (item.no_hp_dokter && item.no_hp_dokter.includes(searchText)) ||
+          (item.id_dokter && item.id_dokter.toString().includes(searchText))
         );
       case 'Perawat':
         return perawatData.filter(item =>
-          item.nama_perawat.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.no_hp_perawat.includes(searchText) ||
-          getUserById(item.id_user).toLowerCase().includes(searchText.toLowerCase())
+          item.nama_perawat && item.nama_perawat.toLowerCase().includes(searchText.toLowerCase()) ||
+          (item.no_hp_perawat && item.no_hp_perawat.includes(searchText)) ||
+          (item.id_perawat && item.id_perawat.toString().includes(searchText))
         );
       case 'Poli':
         return poliData.filter(item =>
-          item.nama_poli.toLowerCase().includes(searchText.toLowerCase()) ||
-          getDokterById(item.id_dokter).toLowerCase().includes(searchText.toLowerCase()) ||
-          getPerawatById(item.id_perawat).toLowerCase().includes(searchText.toLowerCase())
+          item.nama_poli && item.nama_poli.toLowerCase().includes(searchText.toLowerCase()) ||
+          (item.nama_dokter && item.nama_dokter.toLowerCase().includes(searchText.toLowerCase())) ||
+          (item.nama_perawat && item.nama_perawat.toLowerCase().includes(searchText.toLowerCase())) ||
+          (item.id_poli && item.id_poli.toString().includes(searchText))
         );
       default:
         return [];
     }
-  };
-
-  const handleAdd = () => {
-    switch (activeTab) {
-      case 'Dokter':
-        handleAddDokter();
-        break;
-      case 'Perawat':
-        handleAddPerawat();
-        break;
-      case 'Poli':
-        handleAddPoli();
-        break;
-    }
-  };
-
-  const handleAddDokter = async () => {
-    if (!newDokter.nama_dokter || !newDokter.no_hp_dokter || !newDokter.id_user) {
-      Alert.alert('Error', 'Mohon isi semua field yang diperlukan');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const token = await AsyncStorage.getItem('access_token');
-      
-      if (!token) {
-        Alert.alert('Error', 'Token not found. Please login again.');
-        return;
-      }
-
-      await axios.post('https://ti054a01.agussbn.my.id/api/dokters', {
-        nama_dokter: newDokter.nama_dokter,
-        no_hp_dokter: newDokter.no_hp_dokter,
-        id_user: newDokter.id_user
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      Alert.alert('Berhasil', 'Data dokter berhasil ditambahkan');
-      setNewDokter({ nama_dokter: '', no_hp_dokter: '', id_user: 0 });
-      setShowAddModal(false);
-      setShowUserDropdown(false);
-      fetchDokters(); // Refresh the list
-    } catch (error) {
-      console.error('Error adding dokter:', error);
-      Alert.alert('Error', 'Gagal menambahkan data dokter');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleAddPerawat = async () => {
-    if (!newPerawat.nama_perawat || !newPerawat.no_hp_perawat || !newPerawat.id_user) {
-      Alert.alert('Error', 'Mohon isi semua field yang diperlukan');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const token = await AsyncStorage.getItem('access_token');
-      
-      if (!token) {
-        Alert.alert('Error', 'Token not found. Please login again.');
-        return;
-      }
-
-      await axios.post('https://ti054a01.agussbn.my.id/api/perawats', {
-        nama_perawat: newPerawat.nama_perawat,
-        no_hp_perawat: newPerawat.no_hp_perawat,
-        id_user: newPerawat.id_user
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      Alert.alert('Berhasil', 'Data perawat berhasil ditambahkan');
-      setNewPerawat({ nama_perawat: '', no_hp_perawat: '', id_user: 0 });
-      setShowAddModal(false);
-      setShowUserDropdown(false);
-      fetchPerawats(); // Refresh the list
-    } catch (error) {
-      console.error('Error adding perawat:', error);
-      Alert.alert('Error', 'Gagal menambahkan data perawat');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleAddPoli = async () => {
-    if (!newPoli.nama_poli || !newPoli.id_dokter || !newPoli.id_perawat) {
-      Alert.alert('Error', 'Mohon isi semua field yang diperlukan');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const token = await AsyncStorage.getItem('access_token');
-      
-      if (!token) {
-        Alert.alert('Error', 'Token not found. Please login again.');
-        return;
-      }
-
-      await axios.post('https://ti054a01.agussbn.my.id/api/polis', {
-        nama_poli: newPoli.nama_poli,
-        id_dokter: newPoli.id_dokter,
-        id_perawat: newPoli.id_perawat
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      Alert.alert('Berhasil', 'Data poli berhasil ditambahkan');
-      setNewPoli({ nama_poli: '', id_dokter: 0, id_perawat: 0 });
-      setShowAddModal(false);
-      setShowDokterDropdown(false);
-      setShowPerawatDropdown(false);
-      fetchPolis(); // Refresh the list
-    } catch (error) {
-      console.error('Error adding poli:', error);
-      Alert.alert('Error', 'Gagal menambahkan data poli');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const resetForms = () => {
-    setNewDokter({ nama_dokter: '', no_hp_dokter: '', id_user: 0 });
-    setNewPerawat({ nama_perawat: '', no_hp_perawat: '', id_user: 0 });
-    setNewPoli({ nama_poli: '', id_dokter: 0, id_perawat: 0 });
-    setShowUserDropdown(false);
-    setShowDokterDropdown(false);
-    setShowPerawatDropdown(false);
   };
 
   const renderDokterCard = ({ item, index }) => (
@@ -394,14 +188,14 @@ const Layanan = ({ navigation }) => {
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.cardTitle}>{item.nama_dokter}</Text>
-          <Text style={styles.cardSubtitle}>ID: {item.id}</Text>
+          <Text style={styles.cardSubtitle}>ID: {item.id_dokter}</Text>
+          <View style={styles.contactInfo}>
+            <Icon name="medical-bag" size={14} color="#666" />
+            <Text style={styles.contactText}>{item.spesialis}</Text>
+          </View>
           <View style={styles.contactInfo}>
             <Icon name="phone" size={14} color="#666" />
             <Text style={styles.contactText}>{item.no_hp_dokter}</Text>
-          </View>
-          <View style={styles.contactInfo}>
-            <Icon name="email" size={14} color="#666" />
-            <Text style={styles.contactText}>{getUserById(item.id_user)}</Text>
           </View>
         </View>
       </View>
@@ -416,14 +210,10 @@ const Layanan = ({ navigation }) => {
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.cardTitle}>{item.nama_perawat}</Text>
-          <Text style={styles.cardSubtitle}>ID: {item.id}</Text>
+          <Text style={styles.cardSubtitle}>ID: {item.id_perawat}</Text>
           <View style={styles.contactInfo}>
             <Icon name="phone" size={14} color="#666" />
             <Text style={styles.contactText}>{item.no_hp_perawat}</Text>
-          </View>
-          <View style={styles.contactInfo}>
-            <Icon name="account" size={14} color="#666" />
-            <Text style={styles.contactText}>{getUserById(item.id_user)}</Text>
           </View>
         </View>
       </View>
@@ -438,14 +228,14 @@ const Layanan = ({ navigation }) => {
         </View>
         <View style={styles.cardInfo}>
           <Text style={styles.cardTitle}>{item.nama_poli}</Text>
-          <Text style={styles.cardSubtitle}>ID: {item.id}</Text>
+          <Text style={styles.cardSubtitle}>ID: {item.id_poli}</Text>
           <View style={styles.contactInfo}>
             <Icon name="doctor" size={14} color="#666" />
-            <Text style={styles.contactText}>{getDokterById(item.id_dokter)}</Text>
+            <Text style={styles.contactText}>{item.nama_dokter}</Text>
           </View>
           <View style={styles.contactInfo}>
             <Icon name="account-heart" size={14} color="#666" />
-            <Text style={styles.contactText}>{getPerawatById(item.id_perawat)}</Text>
+            <Text style={styles.contactText}>{item.nama_perawat}</Text>
           </View>
         </View>
       </View>
@@ -465,255 +255,6 @@ const Layanan = ({ navigation }) => {
     }
   };
 
-  const renderModalContent = () => {
-    switch (activeTab) {
-      case 'Dokter':
-        return (
-          <View style={styles.formContainer}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nama Dokter</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newDokter.nama_dokter}
-                onChangeText={(text) => setNewDokter({...newDokter, nama_dokter: text})}
-                placeholder="Masukkan nama dokter dengan spesialis"
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>No. HP Dokter</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newDokter.no_hp_dokter}
-                onChangeText={(text) => setNewDokter({...newDokter, no_hp_dokter: text})}
-                placeholder="Masukkan no. HP dokter"
-                placeholderTextColor="#999"
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>User</Text>
-              <TouchableOpacity 
-                style={styles.dropdownButton}
-                onPress={() => setShowUserDropdown(!showUserDropdown)}
-              >
-                <Text style={[styles.dropdownButtonText, !newDokter.id_user && styles.placeholderText]}>
-                  {newDokter.id_user ? getUserNameById(newDokter.id_user) : 'Pilih User'}
-                </Text>
-                <Icon name="chevron-down" size={20} color="#666" />
-              </TouchableOpacity>
-
-              {showUserDropdown && (
-                <View style={styles.dropdownContainer}>
-                  <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
-                    {userData.map((user) => (
-                      <TouchableOpacity
-                        key={user.id}
-                        style={[
-                          styles.dropdownOption,
-                          newDokter.id_user === user.id && styles.selectedOption
-                        ]}
-                        onPress={() => {
-                          setNewDokter({...newDokter, id_user: user.id});
-                          setShowUserDropdown(false);
-                        }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          newDokter.id_user === user.id && styles.radioSelected
-                        ]}>
-                          {newDokter.id_user === user.id && <View style={styles.radioDot} />}
-                        </View>
-                        <View style={styles.userInfo}>
-                          <Text style={styles.dropdownText}>{user.name}</Text>
-                          <Text style={styles.dropdownSubText}>{user.email}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-          </View>
-        );
-
-      case 'Perawat':
-        return (
-          <View style={styles.formContainer}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nama Perawat</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newPerawat.nama_perawat}
-                onChangeText={(text) => setNewPerawat({...newPerawat, nama_perawat: text})}
-                placeholder="Masukkan nama perawat"
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>No. HP Perawat</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newPerawat.no_hp_perawat}
-                onChangeText={(text) => setNewPerawat({...newPerawat, no_hp_perawat: text})}
-                placeholder="Masukkan no. HP perawat"
-                placeholderTextColor="#999"
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>User</Text>
-              <TouchableOpacity 
-                style={styles.dropdownButton}
-                onPress={() => setShowUserDropdown(!showUserDropdown)}
-              >
-                <Text style={[styles.dropdownButtonText, !newPerawat.id_user && styles.placeholderText]}>
-                  {newPerawat.id_user ? getUserNameById(newPerawat.id_user) : 'Pilih User'}
-                </Text>
-                <Icon name="chevron-down" size={20} color="#666" />
-              </TouchableOpacity>
-
-              {showUserDropdown && (
-                <View style={styles.dropdownContainer}>
-                  <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
-                    {userData.map((user) => (
-                      <TouchableOpacity
-                        key={user.id}
-                        style={[
-                          styles.dropdownOption,
-                          newPerawat.id_user === user.id && styles.selectedOption
-                        ]}
-                        onPress={() => {
-                          setNewPerawat({...newPerawat, id_user: user.id});
-                          setShowUserDropdown(false);
-                        }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          newPerawat.id_user === user.id && styles.radioSelected
-                        ]}>
-                          {newPerawat.id_user === user.id && <View style={styles.radioDot} />}
-                        </View>
-                        <View style={styles.userInfo}>
-                          <Text style={styles.dropdownText}>{user.name}</Text>
-                          <Text style={styles.dropdownSubText}>{user.email}</Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-          </View>
-        );
-
-      case 'Poli':
-        return (
-          <View style={styles.formContainer}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Nama Poli</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newPoli.nama_poli}
-                onChangeText={(text) => setNewPoli({...newPoli, nama_poli: text})}
-                placeholder="Masukkan nama poli"
-                placeholderTextColor="#999"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Pilih Dokter</Text>
-              <TouchableOpacity 
-                style={styles.dropdownButton}
-                onPress={() => setShowDokterDropdown(!showDokterDropdown)}
-              >
-                <Text style={[styles.dropdownButtonText, !newPoli.id_dokter && styles.placeholderText]}>
-                  {newPoli.id_dokter ? getDokterById(newPoli.id_dokter) : 'Pilih Dokter'}
-                </Text>
-                <Icon name="chevron-down" size={20} color="#666" />
-              </TouchableOpacity>
-
-              {showDokterDropdown && (
-                <View style={styles.dropdownContainer}>
-                  <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
-                    {dokterData.map((dokter) => (
-                      <TouchableOpacity
-                        key={dokter.id}
-                        style={[
-                          styles.dropdownOption,
-                          newPoli.id_dokter === dokter.id && styles.selectedOption
-                        ]}
-                        onPress={() => {
-                          setNewPoli({...newPoli, id_dokter: dokter.id});
-                          setShowDokterDropdown(false);
-                        }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          newPoli.id_dokter === dokter.id && styles.radioSelected
-                        ]}>
-                          {newPoli.id_dokter === dokter.id && <View style={styles.radioDot} />}
-                        </View>
-                        <Text style={styles.dropdownText}>{dokter.nama_dokter}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Pilih Perawat</Text>
-              <TouchableOpacity 
-                style={styles.dropdownButton}
-                onPress={() => setShowPerawatDropdown(!showPerawatDropdown)}
-              >
-                <Text style={[styles.dropdownButtonText, !newPoli.id_perawat && styles.placeholderText]}>
-                  {newPoli.id_perawat ? getPerawatById(newPoli.id_perawat) : 'Pilih Perawat'}
-                </Text>
-                <Icon name="chevron-down" size={20} color="#666" />
-              </TouchableOpacity>
-
-              {showPerawatDropdown && (
-                <View style={styles.dropdownContainer}>
-                  <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
-                    {perawatData.map((perawat) => (
-                      <TouchableOpacity
-                        key={perawat.id}
-                        style={[
-                          styles.dropdownOption,
-                          newPoli.id_perawat === perawat.id && styles.selectedOption
-                        ]}
-                        onPress={() => {
-                          setNewPoli({...newPoli, id_perawat: perawat.id});
-                          setShowPerawatDropdown(false);
-                        }}
-                      >
-                        <View style={[
-                          styles.radioCircle,
-                          newPoli.id_perawat === perawat.id && styles.radioSelected
-                        ]}>
-                          {newPoli.id_perawat === perawat.id && <View style={styles.radioDot} />}
-                        </View>
-                        <Text style={styles.dropdownText}>{perawat.nama_perawat}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-          </View>
-        );
-
-      default:
-        return null;
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#2A9DF4" translucent={false} />
@@ -726,16 +267,6 @@ const Layanan = ({ navigation }) => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Layanan Medis</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => {
-            resetForms();
-            setShowAddModal(true);
-          }}
-        >
-          <Text style={styles.addButtonText}>Tambah</Text>
-          <Icon name="plus" size={20} color="white" />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
@@ -795,7 +326,18 @@ const Layanan = ({ navigation }) => {
             <FlatList
               data={getFilteredData()}
               renderItem={renderCard}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item) => {
+                switch (activeTab) {
+                  case 'Dokter':
+                    return item.id_dokter ? item.id_dokter.toString() : Math.random().toString();
+                  case 'Perawat':
+                    return item.id_perawat ? item.id_perawat.toString() : Math.random().toString();
+                  case 'Poli':
+                    return item.id_poli ? item.id_poli.toString() : Math.random().toString();
+                  default:
+                    return Math.random().toString();
+                }
+              }}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.cardsList}
               bounces={false}
@@ -810,56 +352,13 @@ const Layanan = ({ navigation }) => {
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <Icon name="folder-open-outline" size={48} color="#ccc" />
-                  <Text style={styles.emptyText}>No {activeTab.toLowerCase()} found</Text>
+                  <Text style={styles.emptyText}>Tidak ada data {activeTab.toLowerCase()}</Text>
                 </View>
               }
             />
           )}
         </View>
       </View>
-
-      {/* Add Modal */}
-      <Modal
-        visible={showAddModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowAddModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Tambah {activeTab}</Text>
-                <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                  <Icon name="close" size={24} color="#666" />
-                </TouchableOpacity>
-              </View>
-
-              {renderModalContent()}
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity 
-                  style={styles.cancelButton}
-                  onPress={() => setShowAddModal(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Batal</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.saveButton}
-                  onPress={handleAdd}
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={styles.saveButtonText}>Simpan</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -1038,157 +537,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     marginLeft: 6,
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    width: '95%',
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  formContainer: {
-    marginBottom: 20,
-  },
-  inputGroup: {
-    marginBottom: 15,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 14,
-    color: '#333',
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    backgroundColor: '#f9f9f9',
-  },
-  dropdownButtonText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  placeholderText: {
-    color: '#999',
-  },
-  dropdownContainer: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    marginTop: 5,
-    backgroundColor: '#fff',
-    maxHeight: 200,
-  },
-  dropdownScroll: {
-    maxHeight: 200,
-  },
-  dropdownOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    marginBottom: 5,
-  },
-  selectedOption: {
-    backgroundColor: '#F0F8FF',
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: '#333',
-    marginLeft: 10,
-    flex: 1,
-  },
-  dropdownSubText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 10,
-    marginTop: 2,
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioSelected: {
-    borderColor: '#2A9DF4',
-  },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#2A9DF4',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 10,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  saveButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: '#2A9DF4',
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'white',
   },
 });
 
