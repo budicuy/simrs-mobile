@@ -165,18 +165,11 @@ const Pendaftaran = ({ navigation }) => {
 
     // Filter by tab
     if (activeTab === 'Hari ini') {
-      filtered = filtered.filter(item => {
-        const itemDate = new Date(item.tgl_kunjungan).toISOString().split('T')[0];
-        const today = new Date().toISOString().split('T')[0];
-        return itemDate === today && item.status !== 'Selesai'; // Not "Selesai"
-      });
+      // Show all statuses except "Selesai"
+      filtered = filtered.filter(item => item.status !== 'Selesai');
     } else {
-      // Riwayat: show completed registrations or past dates
-      filtered = filtered.filter(item => {
-        const itemDate = new Date(item.tgl_kunjungan).toISOString().split('T')[0];
-        const today = new Date().toISOString().split('T')[0];
-        return item.status === 'Selesai' || itemDate < today;
-      });
+      // Riwayat: show only completed registrations (status "Selesai")
+      filtered = filtered.filter(item => item.status === 'Selesai');
     }
 
     // Filter by search text

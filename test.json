@@ -1,0 +1,23 @@
+perbarui tampilan untuk halaman pendaftaran untuk tampilan data tampilkan seperti ini :
+note : untuk di tampilan pendaftaran hilangkan fitur tombol aksi untuk mengubah status
+{
+    "no_registrasi": 1, 
+    "nama_pasien": "string", 
+    "nik_pasien": 0, 
+    "nama_poli": "string", 
+    "nama_dokter": "string", 
+    "status": "Menunggu",
+    "tgl_kunjungan": "string" // 
+}
+
+
+
+
+dan ini untuk data form pendaftaran yang akan dikirim ke API :
+{
+  "rm": "string", // relasikan ke tabel pasien dan tampilkan nama pasien
+  "id_poli": "string", // relasikan ke tabel poli dan tampilkan nama poli
+  "tgl_kunjungan": "2025-06-30 13:09:46", // tanggal kunjungan pasien, 2025-06-30 13:09:46
+  "status": 0, // default 0 = Menunggu tidak perlu di tampilkan di form
+  "no_antrian": 0  // buat no antrian terpisah sesuai polinya masing-masing (ambil berdarkan data antrian terakhir di poli tersebut kemudian ditambah 1)
+}
