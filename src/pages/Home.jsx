@@ -37,7 +37,7 @@ const Home = ({ navigation }) => {
       setLoading(true);
       const token = await AsyncStorage.getItem('access_token');
       
-      const response = await axios.get('https://nazarfadil.me/api/dashboard/counts', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/dashboard/counts', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

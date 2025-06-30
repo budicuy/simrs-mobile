@@ -40,30 +40,22 @@ const Pasien = ({ navigation }) => {
     agama: 'Islam',
     kabupaten: '',
     pekerjaan: '',
-    jns_kelamin: 'Laki-Laki',
+    jns_kelamin: 'Pria',
     alamat: '',
     no_hp_pasien: '',
     email_pasien: '',
-    gol_darah: 'O'
+    gol_darah: 'A'
   });
 
-  const jenisKelaminOptions = ['Laki-Laki', 'Perempuan'];
-  const golDarahOptions = ['A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-  const agamaOptions = ['Islam', 'Kristen', 'Katholik', 'Protestan', 'Hindu', 'Buddha', 'Tidak Ada'];
+  const jenisKelaminOptions = ['Pria', 'Perempuan'];
+  const golDarahOptions = ['A', 'B', 'AB', 'O'];
+  const agamaOptions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
   
-  // Indonesian provinces/kabupaten
+  // South Kalimantan kabupaten/cities
   const kabupatenOptions = [
-    'Aceh Barat', 'Aceh Barat Daya', 'Aceh Besar', 'Aceh Jaya', 'Aceh Selatan', 'Aceh Singkil', 'Aceh Tamiang', 'Aceh Tengah', 'Aceh Tenggara', 'Aceh Timur', 'Aceh Utara',
-    'Badung', 'Bangli', 'Buleleng', 'Gianyar', 'Jembrana', 'Karangasem', 'Klungkung', 'Tabanan',
-    'Lebak', 'Pandeglang', 'Serang', 'Tangerang',
-    'Jakarta Barat', 'Jakarta Pusat', 'Jakarta Selatan', 'Jakarta Timur', 'Jakarta Utara', 'Kepulauan Seribu',
-    'Bogor', 'Sukabumi', 'Cianjur', 'Bandung', 'Garut', 'Tasikmalaya', 'Ciamis', 'Kuningan', 'Cirebon', 'Majalengka', 'Sumedang', 'Indramayu', 'Subang', 'Purwakarta', 'Karawang', 'Bekasi', 'Bandung Barat', 'Pangandaran',
-    'Cilacap', 'Banyumas', 'Purbalingga', 'Banjarnegara', 'Kebumen', 'Purworejo', 'Wonosobo', 'Magelang', 'Boyolali', 'Klaten', 'Sukoharjo', 'Wonogiri', 'Karanganyar', 'Sragen', 'Grobogan', 'Blora', 'Rembang', 'Pati', 'Kudus', 'Jepara', 'Demak', 'Semarang', 'Temanggung', 'Kendal', 'Batang', 'Pekalongan', 'Pemalang', 'Tegal', 'Brebes',
-    'Kulon Progo', 'Bantul', 'Gunung Kidul', 'Sleman',
-    'Pacitan', 'Ponorogo', 'Trenggalek', 'Tulungagung', 'Blitar', 'Kediri', 'Malang', 'Lumajang', 'Jember', 'Banyuwangi', 'Bondowoso', 'Situbondo', 'Probolinggo', 'Pasuruan', 'Sidoarjo', 'Mojokerto', 'Jombang', 'Nganjuk', 'Madiun', 'Magetan', 'Ngawi', 'Bojonegoro', 'Tuban', 'Lamongan', 'Gresik',
-    'Banjar', 'Barito Kuala', 'Hulu Sungai Selatan', 'Hulu Sungai Tengah', 'Hulu Sungai Utara', 'Tabalong', 'Tanah Bumbu', 'Tanah Laut', 'Balangan', 'Kotabaru', 'Tapin',
-    'Kutai Barat', 'Kutai Kartanegara', 'Kutai Timur', 'Berau', 'Malinau', 'Bulungan', 'Nunukan', 'Penajam Paser Utara', 'Tana Tidung',
-    'Bolaang Mongondow', 'Minahasa', 'Kepulauan Sangihe', 'Kepulauan Talaud', 'Minahasa Selatan', 'Minahasa Utara', 'Bolaang Mongondow Utara', 'Siau Tagulandang Biaro', 'Minahasa Tenggara', 'Bolaang Mongondow Selatan', 'Bolaang Mongondow Timur'
+    'Banjar', 'Barito Kuala', 'Tapin', 'Hulu Sungai Selatan', 'Hulu Sungai Tengah', 
+    'Hulu Sungai Utara', 'Tabalong', 'Tanah Laut', 'Tanah Bumbu', 'Balangan', 
+    'Kotabaru', 'Banjarmasin (Kota)', 'Banjarbaru (Kota)', 'Lainnya'
   ];
 
   // API Functions
@@ -76,7 +68,7 @@ const Pasien = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.get('https://nazarfadil.me/api/pasiens', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/pasien', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -110,9 +102,9 @@ const Pasien = ({ navigation }) => {
     return nik.length === 16 && /^\d+$/.test(nik);
   };
 
-  // Validate phone number (starts with 62, min 8 digits)
+  // Validate phone number (starts with 08, min 8 digits, max 16 digits)
   const validatePhoneNumber = (phone) => {
-    return phone.startsWith('62') && phone.length >= 10;
+    return phone.startsWith('08') && phone.length >= 8 && phone.length <= 16;
   };
 
   // Refresh data
@@ -124,8 +116,8 @@ const Pasien = ({ navigation }) => {
   const getFilteredData = () => {
     let filteredByTab = pasienData;
     
-    if (activeTab === 'Laki-laki') {
-      filteredByTab = pasienData.filter(item => item.jns_kelamin === 'Laki-Laki');
+    if (activeTab === 'Pria') {
+      filteredByTab = pasienData.filter(item => item.jns_kelamin === 'Pria');
     } else if (activeTab === 'Perempuan') {
       filteredByTab = pasienData.filter(item => item.jns_kelamin === 'Perempuan');
     }
@@ -144,11 +136,11 @@ const Pasien = ({ navigation }) => {
   );
 
   const getGenderIcon = (gender) => {
-    return gender === 'Laki-Laki' ? 'gender-male' : 'gender-female';
+    return gender === 'Pria' ? 'gender-male' : 'gender-female';
   };
 
   const getGenderColor = (gender) => {
-    return gender === 'Laki-Laki' ? '#2196F3' : '#E91E63';
+    return gender === 'Pria' ? '#2196F3' : '#E91E63';
   };
 
   const formatDate = (dateString) => {
@@ -185,7 +177,7 @@ const Pasien = ({ navigation }) => {
 
     // Validate phone number
     if (!validatePhoneNumber(newPasien.no_hp_pasien)) {
-      Alert.alert('Error', 'No. HP harus dimulai dengan 62 dan minimal 10 digit');
+      Alert.alert('Error', 'No. HP harus dimulai dengan 08 dan minimal 8 digit maksimal 16 digit');
       return;
     }
 
@@ -209,10 +201,10 @@ const Pasien = ({ navigation }) => {
       // Generate RM number
       const rmNumber = generateRM();
 
-      // Format birth date to ISO string
-      const formattedBirthDate = new Date(newPasien.tgl_lahir).toISOString();
+      // Format birth date to datetime format
+      const formattedBirthDate = new Date(newPasien.tgl_lahir).toISOString().slice(0, 19).replace('T', ' ');
 
-      await axios.post('https://nazarfadil.me/api/pasiens', {
+      await axios.post('https://ti054a01.agussbn.my.id/api/pasiens', {
         rm: rmNumber,
         nik: parseInt(newPasien.nik),
         nama_pasien: newPasien.nama_pasien,
@@ -258,11 +250,11 @@ const Pasien = ({ navigation }) => {
       agama: 'Islam',
       kabupaten: '',
       pekerjaan: '',
-      jns_kelamin: 'Laki-Laki',
+      jns_kelamin: 'Pria',
       alamat: '',
       no_hp_pasien: '',
       email_pasien: '',
-      gol_darah: 'O'
+      gol_darah: 'A'
     });
     setShowKabupatenDropdown(false);
     setShowAgamaDropdown(false);
@@ -463,7 +455,7 @@ const Pasien = ({ navigation }) => {
                     style={styles.textInput}
                     value={newPasien.tgl_lahir}
                     onChangeText={(text) => setNewPasien({...newPasien, tgl_lahir: text})}
-                    placeholder="YYYY-MM-DD (contoh: 1990-01-15)"
+                    placeholder="YYYY-MM-DD HH:MM:SS (contoh: 2025-06-30 13:09:46)"
                     placeholderTextColor="#999"
                   />
                 </View>
@@ -615,14 +607,15 @@ const Pasien = ({ navigation }) => {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>No. HP (mulai dengan 62)</Text>
+                  <Text style={styles.inputLabel}>No. HP (mulai dengan 08)</Text>
                   <TextInput
                     style={styles.textInput}
                     value={newPasien.no_hp_pasien}
                     onChangeText={(text) => setNewPasien({...newPasien, no_hp_pasien: text})}
-                    placeholder="62xxxxxxxxx"
+                    placeholder="08xxxxxxxxx (8-16 digit)"
                     placeholderTextColor="#999"
                     keyboardType="phone-pad"
+                    maxLength={16}
                   />
                 </View>
 

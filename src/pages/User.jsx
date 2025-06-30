@@ -66,7 +66,7 @@ const User = ({ navigation }) => {
       setLoading(page === 1);
       const token = await AsyncStorage.getItem('access_token');
       
-      const response = await axios.get(`https://nazarfadil.me/api/users?page=${page}`, {
+      const response = await axios.get(`https://ti054a01.agussbn.my.id/api/users?page=${page}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ const User = ({ navigation }) => {
     try {
       const token = await AsyncStorage.getItem('access_token');
       
-      const response = await axios.post('https://nazarfadil.me/api/users', {
+      const response = await axios.post('https://ti054a01.agussbn.my.id/api/users', {
         name: newUser.name,
         email: newUser.email,
         password: newUser.password,

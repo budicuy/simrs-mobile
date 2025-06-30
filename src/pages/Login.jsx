@@ -50,7 +50,7 @@ const Login = ({ navigation }) => {
     try {
       console.log('Starting login process...');
       
-      const response = await axios.post('https://nazarfadil.me/api/login', {
+      const response = await axios.post('https://ti054a01.agussbn.my.id/api/login', {
         email: email.trim(),
         password: password
       }, {

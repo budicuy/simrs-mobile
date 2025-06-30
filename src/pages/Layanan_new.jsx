@@ -60,7 +60,7 @@ const Layanan = ({ navigation }) => {
       const token = await AsyncStorage.getItem('access_token');
       if (!token) return;
 
-      const response = await axios.get('https://nazarfadil.me/api/users', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -84,7 +84,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.get('https://nazarfadil.me/api/dokters', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/dokters', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -112,7 +112,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.get('https://nazarfadil.me/api/perawats', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/perawats', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -140,7 +140,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      const response = await axios.get('https://nazarfadil.me/api/polis', {
+      const response = await axios.get('https://ti054a01.agussbn.my.id/api/polis', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -274,7 +274,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      await axios.post('https://nazarfadil.me/api/dokters', {
+      await axios.post('https://ti054a01.agussbn.my.id/api/dokters', {
         nama_dokter: newDokter.nama_dokter,
         no_hp_dokter: newDokter.no_hp_dokter,
         id_user: newDokter.id_user
@@ -313,7 +313,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      await axios.post('https://nazarfadil.me/api/perawats', {
+      await axios.post('https://ti054a01.agussbn.my.id/api/perawats', {
         nama_perawat: newPerawat.nama_perawat,
         no_hp_perawat: newPerawat.no_hp_perawat,
         id_user: newPerawat.id_user
@@ -352,7 +352,7 @@ const Layanan = ({ navigation }) => {
         return;
       }
 
-      await axios.post('https://nazarfadil.me/api/polis', {
+      await axios.post('https://ti054a01.agussbn.my.id/api/polis', {
         nama_poli: newPoli.nama_poli,
         id_dokter: newPoli.id_dokter,
         id_perawat: newPoli.id_perawat
