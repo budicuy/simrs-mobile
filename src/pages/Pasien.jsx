@@ -43,14 +43,14 @@ const Pasien = ({ navigation }) => {
     agama: 'Islam',
     kabupaten: '',
     pekerjaan: '',
-    jns_kelamin: 'Pria',
+    jns_kelamin: 'pria', // Sesuai dengan format API
     alamat: '',
     no_hp_pasien: '',
     email_pasien: '',
     gol_darah: 'A'
   });
 
-  const jenisKelaminOptions = ['Pria', 'Perempuan'];
+  const jenisKelaminOptions = ['pria', 'perempuan']; // Sesuai dengan format API
   const golDarahOptions = ['A', 'B', 'AB', 'O'];
   const agamaOptions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu', 'Lainnya'];
   
@@ -79,6 +79,7 @@ const Pasien = ({ navigation }) => {
       });
 
       if (response.data && response.data.data) {
+        console.log('Fetched pasien data:', response.data.data);
         setPasienData(response.data.data);
       }
     } catch (error) {
@@ -120,9 +121,9 @@ const Pasien = ({ navigation }) => {
     let filteredByTab = pasienData;
     
     if (activeTab === 'Pria') {
-      filteredByTab = pasienData.filter(item => item.jns_kelamin === 'Pria');
+      filteredByTab = pasienData.filter(item => item.jns_kelamin === 'pria');
     } else if (activeTab === 'Perempuan') {
-      filteredByTab = pasienData.filter(item => item.jns_kelamin === 'Perempuan');
+      filteredByTab = pasienData.filter(item => item.jns_kelamin === 'perempuan');
     }
 
     return filteredByTab.filter(item =>
@@ -132,18 +133,14 @@ const Pasien = ({ navigation }) => {
     );
   };
 
-  const filteredData = pasienData.filter(item =>
-    item.rm.toString().includes(searchText) ||
-    item.nama_pasien.toLowerCase().includes(searchText.toLowerCase()) ||
-    (item.nik && item.nik.toString().includes(searchText))
-  );
-
+  // Hapus filteredData yang tidak digunakan karena sudah ada getFilteredData()
+  
   const getGenderIcon = (gender) => {
-    return gender === 'Pria' ? 'gender-male' : 'gender-female';
+    return gender === 'pria' ? 'gender-male' : 'gender-female';
   };
 
   const getGenderColor = (gender) => {
-    return gender === 'Pria' ? '#2196F3' : '#E91E63';
+    return gender === 'pria' ? '#2196F3' : '#E91E63';
   };
 
   const formatDate = (dateString) => {
@@ -232,8 +229,21 @@ const Pasien = ({ navigation }) => {
       setShowAddModal(false);
       fetchPasiens(); // Refresh the list
     } catch (error) {
-    // Handle API error secara detail
+      // Handle API error secara detail
       console.error('Error adding pasien:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      // Check if this is actually a successful response that ended up in catch
+      if (error.response?.status === 200 || error.response?.status === 201) {
+        console.log('Success response caught as error, treating as success');
+        Alert.alert('Berhasil', 'Data pasien berhasil ditambahkan');
+        resetForm();
+        setShowAddModal(false);
+        fetchPasiens(); // Refresh the list
+        return;
+      }
+      
       if (error.response?.data?.message) {
         Alert.alert('Error', error.response.data.message);
       } else {
@@ -253,7 +263,7 @@ const Pasien = ({ navigation }) => {
       agama: 'Islam',
       kabupaten: '',
       pekerjaan: '',
-      jns_kelamin: 'Pria',
+      jns_kelamin: 'pria', // Sesuai dengan format API
       alamat: '',
       no_hp_pasien: '',
       email_pasien: '',
@@ -585,7 +595,7 @@ const Pasien = ({ navigation }) => {
                         ]}>
                           {newPasien.jns_kelamin === option && <View style={styles.radioDot} />}
                         </View>
-                        <Text style={styles.radioText}>{option}</Text>
+                        <Text style={styles.radioText}>{option === 'pria' ? 'Pria' : 'Perempuan'}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>

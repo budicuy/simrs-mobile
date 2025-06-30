@@ -166,16 +166,16 @@ const Pendaftaran = ({ navigation }) => {
 
     // Filter by tab
     if (activeTab === 'Hari ini') {
-      // Show all statuses except "Selesai" (status_raw 3)
+      // Show all statuses except "Selesai pembayaran" (status_raw 3)
       filtered = filtered.filter(item => {
         const statusValue = item.status_raw || item.status;
-        return statusValue !== 3 && statusValue !== 'Selesai' && statusValue !== 'Selesai pembayaran';
+        return statusValue !== 3 && statusValue !== 'Selesai pembayaran';
       });
     } else {
-      // Riwayat: show only completed registrations (status_raw 3 or "Selesai")
+      // Riwayat: show only completed registrations (status_raw 3 or "Selesai pembayaran")
       filtered = filtered.filter(item => {
         const statusValue = item.status_raw || item.status;
-        return statusValue === 3 || statusValue === 'Selesai' || statusValue === 'Selesai pembayaran';
+        return statusValue === 3 || statusValue === 'Selesai pembayaran';
       });
     }
 
@@ -218,13 +218,12 @@ const Pendaftaran = ({ navigation }) => {
       case 'Menunggu':
         return '#FF5722';  // Red
       case 1:
-      case 'Dipanggil':
+      case 'Diperiksa':
         return '#FFC107';  // Orange/Yellow
       case 2:
-      case 'Diperiksa':
+      case 'Selesai diperiksa':
         return '#4CAF50';  // Green
       case 3:
-      case 'Selesai':
       case 'Selesai pembayaran':
         return '#2196F3';  // Blue
       default:
@@ -237,19 +236,19 @@ const Pendaftaran = ({ navigation }) => {
       case 0:
         return 'Menunggu';
       case 1:
-        return 'Dipanggil';
-      case 2:
         return 'Diperiksa';
+      case 2:
+        return 'Selesai diperiksa';
       case 3:
         return 'Selesai pembayaran';
       case 'Menunggu':
         return 'Menunggu';
-      case 'Dipanggil':
-        return 'Dipanggil';
       case 'Diperiksa':
         return 'Diperiksa';
+      case 'Selesai diperiksa':
+        return 'Selesai diperiksa';
       case 'Selesai':
-        return 'Selesai';
+        return 'Selesai diperiksa';
       case 'Selesai pembayaran':
         return 'Selesai pembayaran';
       default:
@@ -395,32 +394,54 @@ const Pendaftaran = ({ navigation }) => {
     
     return (
       <View style={styles.patientCard}>
+        {/* Header Section */}
         <View style={styles.cardHeader}>
-          <View style={styles.cardNumber}>
-            <Text style={styles.cardNumberText}>
-              {item.no_antrian ? parseInt(item.no_antrian) : '-'}
-            </Text>
+          <View style={styles.cardTopRow}>
+            <View style={styles.cardNumber}>
+              <Text style={styles.cardNumberText}>
+                {item.no_antrian ? parseInt(item.no_antrian) : '-'}
+              </Text>
+            </View>
+            <View style={styles.cardHeaderInfo}>
+              <Text style={styles.cardRegis}>No. Registrasi: {item.no_registrasi || item.rm}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+                <Text style={styles.statusText}>{statusLabel}</Text>
+              </View>
+            </View>
           </View>
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardRegis}>No. Registrasi: {item.no_registrasi || item.rm}</Text>
-            <Text style={styles.cardName}>{patientName}</Text>
-            <Text style={styles.cardDetail}>NIK: {patientNik}</Text>
-            <Text style={styles.cardClinic}>Poli: {clinicName}</Text>
-            <Text style={styles.cardDoctor}>Dokter: {doctorName}</Text>
-            <Text style={styles.cardDate}>
-              {item.tgl_kunjungan ? 
-                new Date(item.tgl_kunjungan).toLocaleDateString('id-ID', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                }) : 'Tanggal tidak tersedia'
-              }
-            </Text>
-          </View>
-          <View style={styles.statusDisplayOnly}>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-              <Text style={styles.statusText}>{statusLabel}</Text>
+        </View>
+
+        {/* Patient Info Section */}
+        <View style={styles.cardBody}>
+          <Text style={styles.cardName}>{patientName}</Text>
+          <Text style={styles.cardNik}>NIK: {patientNik}</Text>
+          
+          {/* Medical Info */}
+          <View style={styles.medicalInfo}>
+            <View style={styles.infoRow}>
+              <Icon name="ticket" size={16} color="#9C27B0" />
+              <Text style={styles.infoText}>Antrian: {item.no_antrian ? parseInt(item.no_antrian) : '-'}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Icon name="hospital-box" size={16} color="#2A9DF4" />
+              <Text style={styles.infoText}>Poli: {clinicName}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Icon name="doctor" size={16} color="#4CAF50" />
+              <Text style={styles.infoText}>Dokter: {doctorName}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Icon name="calendar" size={16} color="#FF9800" />
+              <Text style={styles.infoText}>
+                {item.tgl_kunjungan ? 
+                  new Date(item.tgl_kunjungan).toLocaleDateString('id-ID', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                  }) : 'Tanggal tidak tersedia'
+                }
+              </Text>
             </View>
           </View>
         </View>
@@ -817,7 +838,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 90, // Extra space untuk tab navigation
+    paddingBottom: 20, // Reduced bottom padding
   },
   tabContainer: {
     flexDirection: 'row',
@@ -876,96 +897,99 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flex: 1,
-    marginBottom: 20,
   },
   cardsList: {
-    paddingBottom: 30,
-    paddingHorizontal: 5,
-    paddingBottom: 30,
-    paddingHorizontal: 5,
+    paddingBottom: 20,
+    paddingTop: 5,
   },
   patientCard: {
     backgroundColor: 'white',
-    borderRadius: 5,
-    marginBottom: 12,
-    elevation: 1,
-    elevation: 1,
+    borderRadius: 12,
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    overflow: 'hidden',
   },
   cardHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9ECEF',
+  },
+  cardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
+    justifyContent: 'space-between',
   },
   cardNumber: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#2A9DF4',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
   },
   cardNumberText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  cardInfo: {
+  cardHeaderInfo: {
     flex: 1,
-  },
-  cardName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    marginLeft: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   cardRegis: {
-    fontSize: 14,
-    color: '#666',
-  },
-  cardDetail: {
     fontSize: 13,
-    color: '#777',
-    marginTop: 1,
-  },
-  cardDoctor: {
-    fontSize: 13,
-    color: '#2A9DF4',
+    color: '#6C757D',
     fontWeight: '500',
-    marginTop: 1,
   },
-  cardClinic: {
-    fontSize: 13,
-    color: '#2A9DF4',
-    fontWeight: '600',
-    marginTop: 2,
+  cardBody: {
+    padding: 16,
   },
-  cardDate: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 2,
+  cardName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#212529',
+    marginBottom: 4,
   },
-  statusContainer: {
+  cardNik: {
+    fontSize: 14,
+    color: '#6C757D',
+    marginBottom: 12,
+  },
+  medicalInfo: {
+    gap: 10,
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 3,
   },
-  statusDisplayOnly: {
-    alignItems: 'center',
-  },
-  statusIcon: {
+  infoText: {
+    fontSize: 14,
+    color: '#495057',
     marginLeft: 8,
+    flex: 1,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 80,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 100,
   },
   statusText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
   },
   // Modal Styles
   modalOverlay: {
