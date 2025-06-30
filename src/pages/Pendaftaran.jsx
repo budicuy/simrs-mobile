@@ -12,25 +12,22 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
-  Vibration
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const Pendaftaran = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('Hari ini');
   const [searchText, setSearchText] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
   const [showRMModal, setShowRMModal] = useState(false);
   const [showClinicModal, setShowClinicModal] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [forceUpdate, setForceUpdate] = useState(0); // Add force update state
-  const [statusChanging, setStatusChanging] = useState(false); // Add status changing state
   
   // API Data States
   const [pendaftaranData, setPendaftaranData] = useState([]);
@@ -41,17 +38,15 @@ const Pendaftaran = ({ navigation }) => {
   const [newPendaftaran, setNewPendaftaran] = useState({
     rm: '',
     id_poli: '',
-    tgl_kunjungan: new Date().toISOString(), // ISO datetime format
-    no_antrian: '',
-    status: 'Menunggu' // Default status as string
+    tgl_kunjungan: new Date().toISOString().slice(0, 19).replace('T', ' '), // Format: YYYY-MM-DD HH:mm:ss
+    status: 0, // Default 0 (Menunggu)
+    no_antrian: 0
   });
 
-  const statusOptions = [
-    { label: 'Menunggu', value: 'Menunggu' },
-    { label: 'Dipanggil', value: 'Dipanggil' },
-    { label: 'Diperiksa', value: 'Diperiksa' },
-    { label: 'Selesai', value: 'Selesai' }
-  ];
+  // Additional form display states
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPoli, setSelectedPoli] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Load data on component mount
   useEffect(() => {
@@ -138,15 +133,21 @@ const Pendaftaran = ({ navigation }) => {
     return dateString === getTodaysDate();
   };
 
-  const generateQueueNumber = (poliId, date) => {
-    // Count existing registrations for this clinic on this date
-    const today = new Date().toISOString().split('T')[0];
-    const existingCount = pendaftaranData.filter(item => 
-      parseInt(item.id_poli) === parseInt(poliId) && 
-      item.tgl_kunjungan.split('T')[0] === today
-    ).length;
+  const generateQueueNumber = (poliId, dateString) => {
+    // Handle undefined inputs
+    if (!poliId || !dateString) return 1;
     
-    return existingCount + 1; // Return as integer
+    // Get the date part from the datetime string (YYYY-MM-DD format)
+    const targetDate = dateString.split(' ')[0]; // Extract date part from "YYYY-MM-DD HH:mm:ss"
+    
+    // Count existing registrations for this clinic on this specific date
+    const existingCount = pendaftaranData.filter(item => {
+      if (!item.tgl_kunjungan || !item.id_poli) return false;
+      const itemDate = item.tgl_kunjungan.split(' ')[0]; // Extract date part from stored datetime
+      return parseInt(item.id_poli) === parseInt(poliId) && itemDate === targetDate;
+    }).length;
+    
+    return existingCount + 1; // Return next queue number as integer
   };
 
   const getPatientNameByRM = (rm) => {
@@ -155,7 +156,7 @@ const Pendaftaran = ({ navigation }) => {
   };
 
   const getClinicNameById = (id) => {
-    const clinic = poliData.find(p => p.id === id);
+    const clinic = poliData.find(p => p.id_poli === id);
     return clinic ? clinic.nama_poli : 'Poli Tidak Ditemukan';
   };
 
@@ -165,25 +166,37 @@ const Pendaftaran = ({ navigation }) => {
 
     // Filter by tab
     if (activeTab === 'Hari ini') {
-      // Show all statuses except "Selesai"
-      filtered = filtered.filter(item => item.status !== 'Selesai');
+      // Show all statuses except "Selesai" (status_raw 3)
+      filtered = filtered.filter(item => {
+        const statusValue = item.status_raw || item.status;
+        return statusValue !== 3 && statusValue !== 'Selesai' && statusValue !== 'Selesai pembayaran';
+      });
     } else {
-      // Riwayat: show only completed registrations (status "Selesai")
-      filtered = filtered.filter(item => item.status === 'Selesai');
+      // Riwayat: show only completed registrations (status_raw 3 or "Selesai")
+      filtered = filtered.filter(item => {
+        const statusValue = item.status_raw || item.status;
+        return statusValue === 3 || statusValue === 'Selesai' || statusValue === 'Selesai pembayaran';
+      });
     }
 
     // Filter by search text
     if (searchText) {
       filtered = filtered.filter(item => {
-        const patientName = getPatientNameByRM(item.rm).toLowerCase();
-        const clinicName = getClinicNameById(item.id_poli).toLowerCase();
+        // Use data directly from API response since it already includes related data
+        const patientName = item.nama_pasien || '';
+        const patientNik = item.nik_pasien?.toString() || '';
+        const clinicName = item.nama_poli || '';
+        const doctorName = item.nama_dokter || '';
         const searchLower = searchText.toLowerCase();
         
         return (
-          item.rm.toString().toLowerCase().includes(searchLower) ||
-          patientName.includes(searchLower) ||
-          clinicName.includes(searchLower) ||
-          item.no_antrian.toString().toLowerCase().includes(searchLower)
+          (item.rm?.toString() || '').toLowerCase().includes(searchLower) ||
+          (item.no_registrasi?.toString() || '').toLowerCase().includes(searchLower) ||
+          patientName.toLowerCase().includes(searchLower) ||
+          patientNik.toLowerCase().includes(searchLower) ||
+          clinicName.toLowerCase().includes(searchLower) ||
+          doctorName.toLowerCase().includes(searchLower) ||
+          (item.no_antrian?.toString() || '').toLowerCase().includes(searchLower)
         );
       });
     }
@@ -200,63 +213,61 @@ const Pendaftaran = ({ navigation }) => {
   const filteredData = getFilteredData();
 
   const getStatusColor = (status) => {
-    console.log('Getting color for status:', status); // Debug log
     switch (status) {
+      case 0:
       case 'Menunggu':
         return '#FF5722';  // Red
+      case 1:
       case 'Dipanggil':
         return '#FFC107';  // Orange/Yellow
+      case 2:
       case 'Diperiksa':
         return '#4CAF50';  // Green
+      case 3:
       case 'Selesai':
+      case 'Selesai pembayaran':
         return '#2196F3';  // Blue
       default:
-        console.log('Unknown status:', status); // Debug log
         return '#9E9E9E';  // Gray
     }
   };
 
   const getStatusLabel = (status) => {
-    return status || 'Unknown';
-  };
-
-  const getStatusIcon = (status) => {
     switch (status) {
+      case 0:
+        return 'Menunggu';
+      case 1:
+        return 'Dipanggil';
+      case 2:
+        return 'Diperiksa';
+      case 3:
+        return 'Selesai pembayaran';
       case 'Menunggu':
-        return 'clock-outline';
+        return 'Menunggu';
       case 'Dipanggil':
-        return 'account-voice';
+        return 'Dipanggil';
       case 'Diperiksa':
-        return 'stethoscope';
+        return 'Diperiksa';
       case 'Selesai':
-        return 'check-circle';
+        return 'Selesai';
+      case 'Selesai pembayaran':
+        return 'Selesai pembayaran';
       default:
-        return 'help-circle-outline';
-    }
-  };
-
-  const getStatusDescription = (status) => {
-    switch (status) {
-      case 'Menunggu':
-        return 'Pasien sedang menunggu untuk dipanggil';
-      case 'Dipanggil':
-        return 'Pasien telah dipanggil untuk pemeriksaan';
-      case 'Diperiksa':
-        return 'Pasien sedang dalam pemeriksaan';
-      case 'Selesai':
-        return 'Pemeriksaan telah selesai dilakukan';
-      default:
-        return 'Status tidak diketahui';
+        return status || 'Unknown';
     }
   };
 
   const validateForm = () => {
     if (!newPendaftaran.rm) {
-      Alert.alert('Error', 'Silakan pilih pasien (RM)');
+      Alert.alert('Error', 'Silakan pilih rekam medis');
       return false;
     }
     if (!newPendaftaran.id_poli) {
-      Alert.alert('Error', 'Silakan pilih poli/klinik');
+      Alert.alert('Error', 'Silakan pilih poli tujuan');
+      return false;
+    }
+    if (!newPendaftaran.tgl_kunjungan) {
+      Alert.alert('Error', 'Silakan pilih tanggal kunjungan');
       return false;
     }
     
@@ -269,22 +280,22 @@ const Pendaftaran = ({ navigation }) => {
     try {
       setLoading(true);
       
-      // Generate queue number as integer
+      // Generate queue number as integer based on specific poli and date
       const queueNumber = generateQueueNumber(newPendaftaran.id_poli, newPendaftaran.tgl_kunjungan);
-      console.log('Generated queue number type:', typeof queueNumber, 'value:', queueNumber);
       
       const pendaftaranPayload = {
-        rm: parseInt(newPendaftaran.rm), // Ensure RM is integer
-        id_poli: parseInt(newPendaftaran.id_poli), // Ensure poli ID is integer
-        tgl_kunjungan: newPendaftaran.tgl_kunjungan,
-        no_antrian: parseInt(queueNumber), // Ensure this is integer
-        status: newPendaftaran.status
+        rm: newPendaftaran.rm?.toString() || '', // Ensure string
+        id_poli: newPendaftaran.id_poli?.toString() || '', // Ensure string
+        tgl_kunjungan: newPendaftaran.tgl_kunjungan, // Keep MySQL datetime format YYYY-MM-DD HH:mm:ss
+        status: newPendaftaran.status, // 0 = Menunggu
+        no_antrian: queueNumber // Integer queue number per poli
       };
 
-      console.log('Sending pendaftaran data:', pendaftaranPayload);
-      console.log('no_antrian type:', typeof pendaftaranPayload.no_antrian);
+      console.log('Sending pendaftaran data:', JSON.stringify(pendaftaranPayload, null, 2));
 
       const token = await AsyncStorage.getItem('access_token');
+      console.log('Using token:', token ? 'Token found' : 'No token');
+      
       const response = await axios.post(
         'https://ti054a01.agussbn.my.id/api/pendaftaran',
         pendaftaranPayload,
@@ -296,153 +307,122 @@ const Pendaftaran = ({ navigation }) => {
         }
       );
 
-      if (response.data.success) {
+      console.log('Full API response:', response);
+      console.log('Response status:', response.status);
+      console.log('Response data:', response.data);
+
+      // Check for successful response - handle different success indicators
+      if (response.status === 200 || response.status === 201 || 
+          response.data.success === true || 
+          response.data.success === 'true' ||
+          response.data.status === 'success' ||
+          response.data.message?.toLowerCase().includes('berhasil') ||
+          response.data.message?.toLowerCase().includes('success')) {
+        
         Alert.alert('Berhasil', 'Pendaftaran berhasil ditambahkan');
         setNewPendaftaran({
           rm: '',
           id_poli: '',
-          tgl_kunjungan: new Date().toISOString(),
-          no_antrian: '',
-          status: 'Menunggu'
+          tgl_kunjungan: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          status: 0,
+          no_antrian: 0
         });
+        setSelectedPatient(null);
+        setSelectedPoli(null);
         setShowAddModal(false);
         // Automatically refresh data after successful addition
         await fetchPendaftarans();
       } else {
+        console.log('API response not recognized as success:', response.data);
         Alert.alert('Error', response.data.message || 'Gagal menambahkan pendaftaran');
       }
     } catch (error) {
-      console.error('Error adding pendaftaran:', error.response?.data || error);
-      const errorMessage = error.response?.data?.message || 'Gagal menambahkan pendaftaran. Silakan coba lagi.';
-      Alert.alert('Error', errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (pendaftaran, newStatus) => {
-    try {
-      setStatusChanging(true);
-      setLoading(true);
+      console.error('Error adding pendaftaran:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
       
-      if (!pendaftaran) {
-        Alert.alert('Error', 'Data pendaftaran tidak ditemukan');
+      // Check if this is actually a successful response that ended up in catch
+      if (error.response?.status === 200 || error.response?.status === 201) {
+        console.log('Success response caught as error, treating as success');
+        Alert.alert('Berhasil', 'Pendaftaran berhasil ditambahkan');
+        setNewPendaftaran({
+          rm: '',
+          id_poli: '',
+          tgl_kunjungan: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          status: 0,
+          no_antrian: 0
+        });
+        setSelectedPatient(null);
+        setSelectedPoli(null);
+        setShowAddModal(false);
+        // Automatically refresh data after successful addition
+        await fetchPendaftarans();
         return;
       }
-
-      // Haptic feedback
-      Vibration.vibrate(50);
-
-      // Store original data for potential rollback
-      const originalData = [...pendaftaranData];
-
-      // Update local state immediately for instant UI feedback with forced re-render
-      const updatedData = pendaftaranData.map(item => 
-        item.rm === pendaftaran.rm ? { ...item, status: newStatus, updatedAt: Date.now() } : item
-      );
-      setPendaftaranData(updatedData);
-      setForceUpdate(prev => prev + 1); // Force component re-render
-
-      // Close modal with smooth animation
-      setTimeout(() => {
-        setShowStatusModal(false);
-        setSelectedPatient(null);
-        setStatusChanging(false);
-      }, 300);
-
-      // Prepare the complete data payload
-      const updatePayload = {
-        rm: parseInt(pendaftaran.rm),
-        id_poli: parseInt(pendaftaran.id_poli),
-        tgl_kunjungan: pendaftaran.tgl_kunjungan,
-        no_antrian: parseInt(pendaftaran.no_antrian),
-        status: newStatus
-      };
-
-      console.log('Updating status with payload:', updatePayload);
-      console.log('Using RM for URL:', pendaftaran.rm);
       
-      const token = await AsyncStorage.getItem('access_token');
-      const response = await axios.put(
-        `https://ti054a01.agussbn.my.id/api/pendaftaran/${pendaftaran.rm}`,
-        updatePayload,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.data.success) {
-        // Show success message and refresh data to ensure consistency with server
-        console.log('Status updated successfully on server');
-        Alert.alert('Berhasil', 'Status berhasil diubah');
-        
-        // Force a fresh fetch to ensure data consistency
-        setTimeout(async () => {
-          await fetchPendaftarans();
-        }, 500);
-      } else {
-        // Revert local state if API call failed
-        console.log('API call failed, reverting to original data');
-        setPendaftaranData(originalData);
-        Alert.alert('Error', response.data.message || 'Gagal mengubah status');
+      let errorMessage = 'Gagal menambahkan pendaftaran. Silakan coba lagi.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.errors) {
+        // Handle validation errors
+        const errors = error.response.data.errors;
+        const errorMessages = Object.keys(errors).map(key => `${key}: ${errors[key].join(', ')}`);
+        errorMessage = errorMessages.join('\n');
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Sesi login expired. Silakan login kembali.';
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Data tidak valid. Periksa kembali form Anda.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
-    } catch (error) {
-      // Revert local state if API call failed - need to store original data properly
-      console.error('Error changing status:', error.response?.data || error);
-      console.log('Error occurred, reverting to original data');
-      setPendaftaranData(originalData);
-      const errorMessage = error.response?.data?.message || 'Gagal mengubah status. Silakan coba lagi.';
+      
       Alert.alert('Error', errorMessage);
-      // Refresh data to get the correct state from server
-      await fetchPendaftarans();
     } finally {
       setLoading(false);
-      setStatusChanging(false);
     }
   };
 
   const renderPatientCard = ({ item, index }) => {
-    const patientName = getPatientNameByRM(item.rm);
-    const clinicName = getClinicNameById(item.id_poli);
-    const statusColor = getStatusColor(item.status);
-    const statusLabel = getStatusLabel(item.status);
+    // Use data directly from the API response since it already includes related data
+    const patientName = item.nama_pasien || 'Pasien Tidak Ditemukan';
+    const patientNik = item.nik_pasien || '-';
+    const clinicName = item.nama_poli || 'Poli Tidak Ditemukan';
+    const doctorName = item.nama_dokter || 'Dokter Tidak Tersedia';
+    const statusColor = getStatusColor(item.status_raw || item.status);
+    const statusLabel = getStatusLabel(item.status_raw || item.status);
     
     return (
       <View style={styles.patientCard}>
         <View style={styles.cardHeader}>
           <View style={styles.cardNumber}>
             <Text style={styles.cardNumberText}>
-              {parseInt(item.no_antrian)}
+              {item.no_antrian ? parseInt(item.no_antrian) : '-'}
             </Text>
           </View>
           <View style={styles.cardInfo}>
+            <Text style={styles.cardRegis}>No. Registrasi: {item.no_registrasi || item.rm}</Text>
             <Text style={styles.cardName}>{patientName}</Text>
-            <Text style={styles.cardRegis}>RM: {item.rm}</Text>
-            <Text style={styles.cardClinic}>{clinicName}</Text>
+            <Text style={styles.cardDetail}>NIK: {patientNik}</Text>
+            <Text style={styles.cardClinic}>Poli: {clinicName}</Text>
+            <Text style={styles.cardDoctor}>Dokter: {doctorName}</Text>
             <Text style={styles.cardDate}>
-              {new Date(item.tgl_kunjungan).toLocaleDateString('id-ID', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
+              {item.tgl_kunjungan ? 
+                new Date(item.tgl_kunjungan).toLocaleDateString('id-ID', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }) : 'Tanggal tidak tersedia'
+              }
             </Text>
           </View>
-          <TouchableOpacity 
-            style={styles.statusContainer}
-            onPress={() => {
-              setSelectedPatient(item);
-              setShowStatusModal(true);
-            }}
-          >
+          <View style={styles.statusDisplayOnly}>
             <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
               <Text style={styles.statusText}>{statusLabel}</Text>
             </View>
-            <Icon name="chevron-down" size={16} color="#666" style={styles.statusIcon} />
-          </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -518,12 +498,12 @@ const Pendaftaran = ({ navigation }) => {
             <FlatList
               data={filteredData}
               renderItem={renderPatientCard}
-              keyExtractor={(item, index) => `${item.rm}-${item.status}-${item.updatedAt || 0}-${index}`}
+              keyExtractor={(item, index) => `${item.rm}-${item.id_poli}-${item.no_antrian}-${index}`}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.cardsList}
               bounces={false}
               overScrollMode="never"
-              extraData={`${pendaftaranData.length}-${forceUpdate}-${Date.now()}`}
+              extraData={pendaftaranData.length}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -555,7 +535,7 @@ const Pendaftaran = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Tambah Pendaftaran Baru</Text>
+              <Text style={styles.modalTitle}>Form Pendaftaran Kunjungan</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <Icon name="close" size={24} color="#666" />
               </TouchableOpacity>
@@ -563,15 +543,15 @@ const Pendaftaran = ({ navigation }) => {
 
             <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Pasien (RM) *</Text>
+                <Text style={styles.inputLabel}>Rekam Medis *</Text>
                 <TouchableOpacity 
                   style={styles.dropdownInput}
                   onPress={() => setShowRMModal(true)}
                 >
                   <Text style={[styles.dropdownText, !newPendaftaran.rm && styles.placeholderText]}>
                     {newPendaftaran.rm ? 
-                      `${newPendaftaran.rm} - ${getPatientNameByRM(newPendaftaran.rm)}` : 
-                      'Pilih Pasien (RM)'
+                      newPendaftaran.rm : 
+                      'Masukkan Rekam Medis'
                     }
                   </Text>
                   <Icon name="chevron-down" size={20} color="#666" />
@@ -579,40 +559,101 @@ const Pendaftaran = ({ navigation }) => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Poli/Klinik *</Text>
+                <Text style={styles.inputLabel}>Nama Pasien</Text>
+                <TextInput
+                  style={[styles.textInput, styles.readOnlyInput]}
+                  value={selectedPatient?.nama_pasien || ''}
+                  placeholder="Nama pasien akan muncul otomatis"
+                  editable={false}
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>NIK</Text>
+                <TextInput
+                  style={[styles.textInput, styles.readOnlyInput]}
+                  value={selectedPatient?.nik?.toString() || ''}
+                  placeholder="NIK akan muncul otomatis"
+                  editable={false}
+                  placeholderTextColor="#999"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Poli Tujuan *</Text>
                 <TouchableOpacity 
                   style={styles.dropdownInput}
                   onPress={() => setShowClinicModal(true)}
                 >
-                  <Text style={[styles.dropdownText, !newPendaftaran.id_poli && styles.placeholderText]}>
-                    {newPendaftaran.id_poli ? 
-                      getClinicNameById(newPendaftaran.id_poli) : 
-                      'Pilih Poli/Klinik'
-                    }
+                  <Text style={[styles.dropdownText, !selectedPoli && styles.placeholderText]}>
+                    {selectedPoli?.nama_poli || 'Pilih Poli Tujuan'}
                   </Text>
                   <Icon name="chevron-down" size={20} color="#666" />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Status</Text>
-                <View style={styles.statusDisplay}>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(newPendaftaran.status) }]}>
-                    <Text style={styles.statusText}>{getStatusLabel(newPendaftaran.status)}</Text>
-                  </View>
-                  <Text style={styles.statusNote}>
-                    No. antrian dan tanggal kunjungan akan digenerate otomatis
+                <Text style={styles.inputLabel}>Dokter</Text>
+                <TouchableOpacity 
+                  style={[styles.dropdownInput, styles.readOnlyInput]}
+                  disabled={true}
+                >
+                  <Text style={[styles.dropdownText, styles.placeholderText]}>
+                    {selectedPoli?.nama_dokter || 'Memuat Dokter...'}
                   </Text>
-                </View>
+                  <Icon name="chevron-down" size={20} color="#ccc" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Tanggal Kunjungan *</Text>
+                <TouchableOpacity 
+                  style={styles.dropdownInput}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text style={styles.dropdownText}>
+                    {new Date(newPendaftaran.tgl_kunjungan.replace(' ', 'T')).toLocaleDateString('id-ID', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric'
+                    })}
+                  </Text>
+                  <Icon name="calendar" size={20} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Nomor Antrian</Text>
+                <TextInput
+                  style={[styles.textInput, styles.readOnlyInput]}
+                  value={selectedPoli && newPendaftaran.id_poli ? 
+                    `Antrian ke-${generateQueueNumber(newPendaftaran.id_poli, newPendaftaran.tgl_kunjungan)}` : 
+                    ''
+                  }
+                  placeholder="Pilih poli dan tanggal"
+                  editable={false}
+                  placeholderTextColor="#999"
+                />
               </View>
             </ScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity 
-                style={styles.cancelButton}
-                onPress={() => setShowAddModal(false)}
+                style={styles.resetButton}
+                onPress={() => {
+                  setNewPendaftaran({
+                    rm: '',
+                    id_poli: '',
+                    tgl_kunjungan: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                    status: 0,
+                    no_antrian: 0
+                  });
+                  setSelectedPatient(null);
+                  setSelectedPoli(null);
+                }}
               >
-                <Text style={styles.cancelButtonText}>Batal</Text>
+                <Text style={styles.resetButtonText}>Reset</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.saveButton, loading && styles.disabledButton]}
@@ -622,115 +663,8 @@ const Pendaftaran = ({ navigation }) => {
                 {loading ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Text style={styles.saveButtonText}>Simpan</Text>
+                  <Text style={styles.saveButtonText}>Tambah Pendaftaran</Text>
                 )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Status Change Modal */}
-      <Modal
-        visible={showStatusModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowStatusModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.statusModalContent}>
-            {/* Header with patient info */}
-            <View style={styles.statusModalHeader}>
-              <View style={styles.patientInfoHeader}>
-                <View style={styles.patientAvatarContainer}>
-                  <Icon name="account-circle" size={28} color="#2A9DF4" />
-                </View>
-                <View style={styles.patientInfoText}>
-                  <Text style={styles.patientNameText} numberOfLines={1}>
-                    {selectedPatient ? getPatientNameByRM(selectedPatient.rm) : ''}
-                  </Text>
-                  <Text style={styles.patientRMText}>
-                    RM: {selectedPatient ? selectedPatient.rm : ''}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setShowStatusModal(false)}
-              >
-                <Icon name="close" size={20} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Scrollable Content */}
-            <ScrollView 
-              style={styles.statusModalScrollView}
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-            >
-              {/* Title */}
-              <View style={styles.statusTitleContainer}>
-                <Icon name="clipboard-edit" size={20} color="#2A9DF4" />
-                <Text style={styles.statusModalTitle}>Ubah Status Pendaftaran</Text>
-              </View>
-
-              {/* Current Status */}
-              <View style={styles.currentStatusContainer}>
-                <Text style={styles.currentStatusLabel}>Status Saat Ini:</Text>
-                <View style={[styles.currentStatusBadge, { backgroundColor: selectedPatient ? getStatusColor(selectedPatient.status) : '#9E9E9E' }]}>
-                  <Text style={styles.currentStatusText}>
-                    {selectedPatient ? getStatusLabel(selectedPatient.status) : ''}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Status Options */}
-              <View style={styles.statusOptionsContainer}>
-                <Text style={styles.statusOptionsLabel}>Pilih Status Baru:</Text>
-                {statusOptions.map((status, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.statusOption,
-                      selectedPatient && selectedPatient.status === status.value && styles.currentStatusOption
-                    ]}
-                    onPress={() => handleStatusChange(selectedPatient, status.value)}
-                    disabled={selectedPatient && selectedPatient.status === status.value || statusChanging}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.statusOptionContent}>
-                      <View style={[styles.statusOptionBadge, { backgroundColor: getStatusColor(status.value) }]}>
-                        {statusChanging && selectedPatient && selectedPatient.status !== status.value ? (
-                          <ActivityIndicator size="small" color="white" />
-                        ) : (
-                          <Icon name={getStatusIcon(status.value)} size={14} color="white" />
-                        )}
-                      </View>
-                      <View style={styles.statusOptionInfo}>
-                        <Text style={styles.statusOptionLabel}>{status.label}</Text>
-                        <Text style={styles.statusOptionDescription} numberOfLines={2}>
-                          {getStatusDescription(status.value)}
-                        </Text>
-                      </View>
-                      {selectedPatient && selectedPatient.status === status.value ? (
-                        <Icon name="check-circle" size={18} color="#4CAF50" />
-                      ) : (
-                        <Icon name="chevron-right" size={18} color="#999" />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-
-            {/* Footer */}
-            <View style={styles.statusModalFooter}>
-              <TouchableOpacity 
-                style={styles.statusCancelButton}
-                onPress={() => setShowStatusModal(false)}
-              >
-                <Icon name="close-circle-outline" size={16} color="#666" />
-                <Text style={styles.statusCancelText}>Batal</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -747,25 +681,26 @@ const Pendaftaran = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.selectionModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Pilih Pasien</Text>
+              <Text style={styles.modalTitle}>Pilih Rekam Medis</Text>
               <TouchableOpacity onPress={() => setShowRMModal(false)}>
                 <Icon name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
             <FlatList
               data={pasienData}
-              keyExtractor={(item) => item.rm}
+              keyExtractor={(item, index) => item.rm?.toString() || `rm-${index}`}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.selectionItem}
                   onPress={() => {
                     setNewPendaftaran({...newPendaftaran, rm: item.rm});
+                    setSelectedPatient(item);
                     setShowRMModal(false);
                   }}
                 >
                   <View style={styles.selectionInfo}>
-                    <Text style={styles.selectionTitle}>{item.nama_pasien}</Text>
-                    <Text style={styles.selectionSubtitle}>RM: {item.rm}</Text>
+                    <Text style={styles.selectionTitle}>{item.rm}</Text>
+                    <Text style={styles.selectionSubtitle}>{item.nama_pasien}</Text>
                     <Text style={styles.selectionDetail}>NIK: {item.nik}</Text>
                   </View>
                   <Icon name="chevron-right" size={20} color="#666" />
@@ -787,25 +722,28 @@ const Pendaftaran = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.selectionModalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Pilih Poli/Klinik</Text>
+              <Text style={styles.modalTitle}>Pilih Poli Tujuan</Text>
               <TouchableOpacity onPress={() => setShowClinicModal(false)}>
                 <Icon name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
             <FlatList
               data={poliData}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item, index) => item.id_poli?.toString() || `poli-${index}`}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.selectionItem}
                   onPress={() => {
-                    setNewPendaftaran({...newPendaftaran, id_poli: item.id});
+                    const poliId = item.id_poli?.toString() || '';
+                    setNewPendaftaran({...newPendaftaran, id_poli: poliId});
+                    setSelectedPoli(item);
                     setShowClinicModal(false);
                   }}
                 >
                   <View style={styles.selectionInfo}>
                     <Text style={styles.selectionTitle}>{item.nama_poli}</Text>
-                    <Text style={styles.selectionSubtitle}>ID: {item.id}</Text>
+                    <Text style={styles.selectionSubtitle}>Dokter: {item.nama_dokter || 'Tidak ada dokter'}</Text>
+                    <Text style={styles.selectionDetail}>ID: {item.id_poli}</Text>
                   </View>
                   <Icon name="chevron-right" size={20} color="#666" />
                 </TouchableOpacity>
@@ -815,6 +753,24 @@ const Pendaftaran = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Date Picker */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date(newPendaftaran.tgl_kunjungan.replace(' ', 'T'))}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              const formattedDate = selectedDate.toISOString().slice(0, 10) + ' ' + 
+                                  new Date().toTimeString().slice(0, 8);
+              setNewPendaftaran({...newPendaftaran, tgl_kunjungan: formattedDate});
+            }
+          }}
+          minimumDate={new Date()}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -967,6 +923,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  cardDetail: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 1,
+  },
+  cardDoctor: {
+    fontSize: 13,
+    color: '#2A9DF4',
+    fontWeight: '500',
+    marginTop: 1,
+  },
   cardClinic: {
     fontSize: 13,
     color: '#2A9DF4',
@@ -980,6 +947,9 @@ const styles = StyleSheet.create({
   },
   statusContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusDisplayOnly: {
     alignItems: 'center',
   },
   statusIcon: {
@@ -1087,181 +1057,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
   },
-  // Status Modal Styles
-  statusModalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    width: '90%',
-    height: '90%',
-    marginVertical: 80,
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
-    minHeight: 300,
-  },
-  statusModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  statusModalScrollView: {
-    flex: 1,
-  },
-  patientInfoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 10,
-  },
-  patientAvatarContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  patientInfoText: {
-    flex: 1,
-  },
-  patientNameText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  patientRMText: {
-    fontSize: 11,
-    color: '#666',
-  },
-  closeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 10,
-  },
-  statusModalTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 8,
-  },
-  currentStatusContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  currentStatusLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 6,
-  },
-  currentStatusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  currentStatusText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusOptionsContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 10,
-  },
-  statusOptionsLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  statusOption: {
-    marginBottom: 10,
-    borderRadius: 10,
-    backgroundColor: '#FAFAFA',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    overflow: 'hidden',
-    transform: [{ scale: 1 }],
-  },
-  currentStatusOption: {
-    opacity: 0.6,
-    backgroundColor: '#F0F0F0',
-  },
-  statusOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-  },
-  statusOptionBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  statusOptionInfo: {
-    flex: 1,
-    marginRight: 8,
-  },
-  statusOptionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 2,
-  },
-  statusOptionDescription: {
-    fontSize: 11,
-    color: '#666',
-    lineHeight: 14,
-  },
-  statusModalFooter: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    alignItems: 'center',
-  },
-  statusCancelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#F5F5F5',
-  },
-  statusCancelText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
-    marginLeft: 4,
-  },
   // Loading styles
   loadingContainer: {
     flex: 1,
@@ -1296,10 +1091,40 @@ const styles = StyleSheet.create({
   placeholderText: {
     color: '#999',
   },
+  readOnlyInput: {
+    backgroundColor: '#F8F9FA',
+    color: '#666',
+  },
+  resetButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  resetButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
   statusDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  infoDisplay: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#2A9DF4',
+  },
+  infoNote: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
   },
   statusNote: {
     fontSize: 12,
